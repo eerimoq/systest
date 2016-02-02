@@ -21,11 +21,13 @@ Example usage
 See the test suite: https://github.com/eerimoq/systest/blob/master/tests/test_systest.py
 
 For example, the sequence below starts with test case
-MyTestCase("1"). When MyTestCase("1") has been executed,
-MyTestCase("2") and the list of MyTestCase("3") and MyTestCase("4")
-are executed in parallel. When both MyTestCase("2") and the list of
-MyTestCase("3") and MyTestCase("4") has been executed, MyTestCase("5")
-is executed. Then the sequence ends.
+``MyTestCase("1")``. When ``MyTestCase("1")`` has been
+executed, ``MyTestCase("2")`` and the list of
+``MyTestCase("3")`` and ``MyTestCase("4")`` are executed
+in parallel. When both ``MyTestCase("2")`` and the list
+of ``MyTestCase("3")`` and ``MyTestCase("4")`` has been
+executed, ``MyTestCase("5")`` is executed. Then the
+sequence ends.
 
 .. code-block:: python
 
