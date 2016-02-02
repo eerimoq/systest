@@ -19,7 +19,7 @@ This framework is created with production test in mind,
 trying to make it possible to minimize the test
 execution time by executing tests in parallel. The
 framework is *not* indended as a replacement for
-``unittest``, but rather be a complement to it.
+``unittest``, but rather to be a complement to it.
 
 Example usage
 =============
