@@ -45,11 +45,13 @@ _DIGRAPH_FMT = """digraph {name} {{
 
 def _make_filename(text):
     result = ""
+
     for char in text:
         if char in string.digits + string.ascii_letters + "._":
             result += char
         else:
             result += "_"
+
     return result
 
 
@@ -89,6 +91,7 @@ def _flatten(l):
 def _human_time(seconds):
     mins = int(seconds // 60)
     secs = int(seconds - 60 * mins)
+
     return "{}m {}s".format(mins, secs)
 
 
@@ -116,10 +119,12 @@ class _TestThread(threading.Thread):
         print(_TEST_HEADER_FMT.format(name=test.name,
                                       description=test.__doc__),
               file=self.sequencer.output_stream)
+
         test.sequencer = self.sequencer
 
         try:
             result = TestCase.FAILED
+
             # run the test
             if self.sequencer.dry_run:
                 start_time = None
@@ -127,9 +132,11 @@ class _TestThread(threading.Thread):
             else:
                 start_time = time.time()
                 test.run()
+
             result = TestCase.PASSED
         finally:
             finish_time = time.time()
+
             if start_time is not None:
                 execution_time = (finish_time - start_time)
 
@@ -163,6 +170,7 @@ class _TestThread(threading.Thread):
 
         # run each test in a separate thread
         children = []
+
         for test in tests:
             thread = _TestThread(test, self.sequencer)
             thread.start()
@@ -285,6 +293,7 @@ class Sequencer(object):
     def is_testcase_enabled(self, test):
         if self.testcase_filter is None:
             return True
+
         return test.name in self.testcase_filter
 
     def log(self, text):
@@ -365,12 +374,14 @@ class Sequencer(object):
 
         def test(test, indent):
             fmt = ' ' * indent + test.name + ': {result}'
+
             if test.result:
                 result = test.result
             else:
                 result = TestCase.SKIPPED
             if self.color:
                 result = _color_result(result)
+
             return [fmt.format(result=result)]
 
         def sequential_tests(tests, indent):
@@ -396,6 +407,7 @@ class Sequencer(object):
                 raise ValueError("bad type {}".format(type(tests)))
 
         summary = '\n'.join(recursivly(self.tests, 0))
+
         return _REPORT_FMT.format(summary=summary,
                                   execution_time=_human_time(self.execution_time))
 
@@ -414,14 +426,17 @@ class Sequencer(object):
         def get_start_parent(test):
             start_time = -1.0
             start_parent = None
+
             for parent in test.parents:
                 if parent.finish_time > start_time:
                     start_time = parent.finish_time
                     start_parent = parent
+
             return start_parent
 
         def _test(parents, test):
             test.parents = parents
+
             if test.result:
                 test.start_parent = get_start_parent(test)
                 test.finish_time = test.start_parent.finish_time + test.execution_time
@@ -522,6 +537,7 @@ class Sequencer(object):
         edges_recursivly(edges, end, "bold")
 
         deps = []
+
         for test in [begin] + self.tests + [end]:
             deps += deps_recursivly(edges, test)
 
@@ -557,8 +573,10 @@ class Sequence(object):
             filename = _make_filename(self.sequencer.name)
             filename_dot = filename + ".dot"
             filename_png = filename + ".png"
+
             with open(filename_dot, "w") as fout:
                 fout.write(self.sequencer.dot_digraph())
+
             try:
                 command = ["dot", "-Tpng", "-Gdpi=200", "-o", filename_png, filename_dot]
                 subprocess.check_call(command)
@@ -572,6 +590,7 @@ class Sequence(object):
         self.sequencer.set_testcase_filter(testcase_filter)
         self.sequencer.set_dry_run(dry_run)
         self.sequencer.set_stop_on_failure(stop_on_failure)
+
         try:
             self.run()
             report()

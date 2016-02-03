@@ -1,6 +1,6 @@
 import unittest
 
-from systest import Sequence, Sequencer, SequencerTestFailedError
+from systest import Sequence, SequencerTestFailedError
 
 from tests.testcases.named import NamedTest
 from tests.testcases.fail import FailTest
