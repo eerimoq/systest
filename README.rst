@@ -20,6 +20,8 @@ possible to minimize the test execution time by executing tests in parallel. The
 framework is *not* indended as a replacement for ``unittest``, but rather to be
 a complement to it.
 
+Documentation: http://systest.readthedocs.org/en/latest
+
 Example usage
 =============
 
