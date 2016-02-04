@@ -25,14 +25,14 @@ Description:
 _TEST_FOOTER_FMT = """
 {name}: {result} in {duration}"""
 
-_REPORT_FMT = """
----------------------- Test report begin ----------------------
+_SUMMARY_FMT = """
+---------------------- Test summary begin ----------------------
 
 {summary}
 
 Execution time: {execution_time}
 
------------------------ Test report end -----------------------
+----------------------- Test summary end -----------------------
 """
 
 _DIGRAPH_FMT = """digraph {name} {{
@@ -109,6 +109,7 @@ class _TestThread(threading.Thread):
         """
 
         self.result = TestCase.FAILED
+
         try:
             self.run_tests(self.test)
             self.result = TestCase.PASSED
@@ -196,7 +197,10 @@ class _TestThread(threading.Thread):
         elif isinstance(tests, list):
             self.run_sequential_tests(tests)
         elif isinstance(tests, tuple):
-            self.run_parallel_tests(tests)
+            if self.sequencer.force_serial_execution:
+                self.run_sequential_tests(tests)
+            else:
+                self.run_parallel_tests(tests)
 
 
 class SequencerTestFailedError(Exception):
@@ -205,9 +209,6 @@ class SequencerTestFailedError(Exception):
 
 class TestCase(object):
     """Base class of a test case executed by the sequencer.
-
-    Any subclass should override the ``run()`` method and implement
-    the test case logic in it.
 
     """
 
@@ -226,22 +227,6 @@ class TestCase(object):
         self.finish_time = None
         self.parents = []
         self.start_parent = None
-
-    def log(self, text):
-        """Write given text to the sequencer log.
-
-        """
-
-        entry = self.sequencer.format_log_entry(self.name + " " + text)
-        self.sequencer.log(entry)
-
-    def assertEqual(self, a, b):
-        """Raise an exception if ``a`` and ``b`` are not equal.
-
-        """
-
-        if a != b:
-            raise RuntimeError("{} != {}".format(a, b))
 
     def run(self):
         """The test case logic. This function is called be the sequencer to
@@ -262,33 +247,45 @@ class TestCase(object):
 
         return 0.0
 
+    def log(self, text):
+        """Write given text to the sequencer log.
+
+        """
+
+        entry = self.sequencer.format_log_entry(self.name + " " + text)
+        self.sequencer.log(entry)
+
+    def assert_equal(self, first, second):
+        """Raise an exception if ``first`` and ``second`` are not equal.
+
+        """
+
+        if first != second:
+            raise RuntimeError("{} != {}".format(first, second))
+
 
 class Sequencer(object):
 
     def __init__(self,
                  name,
                  output_stream=None,
-                 color=True):
+                 color=True,
+                 stop_on_failure=True,
+                 testcase_filter=None,
+                 dry_run=False,
+                 force_serial_execution=False):
         self.name = name
         if output_stream is None:
             self.output_stream = sys.stdout
         else:
             self.output_stream = output_stream
-        self.stop_on_failure = True
-        self.dry_run = False
+        self.stop_on_failure = stop_on_failure
+        self.dry_run = dry_run
         self.tests = None
         self.execution_time = 0.0
         self.color = color
-        self.testcase_filter = None
-
-    def set_testcase_filter(self, testcase_filter):
         self.testcase_filter = testcase_filter
-
-    def set_stop_on_failure(self, value):
-        self.stop_on_failure = value
-
-    def set_dry_run(self, value):
-        self.dry_run = value
+        self.force_serial_execution = force_serial_execution
 
     def is_testcase_enabled(self, test):
         if self.testcase_filter is None:
@@ -329,17 +326,19 @@ class Sequencer(object):
         the list of Test3 and Test4 has been executed, Test5 is
         executed. Then the sequence ends.
 
-        [
-            Test1(),
-            (
-                Test2(),
-                [
-                    Test3(),
-                    Test4()
-                ]
-            ),
-            Test5()
-        ]
+        .. code-block:: python
+
+           [
+               Test1(),
+               (
+                   Test2(),
+                   [
+                       Test3(),
+                       Test4()
+                   ]
+               ),
+               Test5()
+           ]
 
         """
 
@@ -367,8 +366,8 @@ class Sequencer(object):
         if thread.result != TestCase.PASSED:
             raise SequencerTestFailedError("At least one testcase failed.")
 
-    def report(self):
-        """Compile the test execution report and return it as a string.
+    def summary(self):
+        """Compile the test execution summary and return it as a string.
 
         """
 
@@ -408,8 +407,8 @@ class Sequencer(object):
 
         summary = '\n'.join(recursivly(self.tests, 0))
 
-        return _REPORT_FMT.format(summary=summary,
-                                  execution_time=_human_time(self.execution_time))
+        return _SUMMARY_FMT.format(summary=summary,
+                                   execution_time=_human_time(self.execution_time))
 
     def dot_digraph(self):
         """Create a graphviz dot digraph of given test sequence.
@@ -464,7 +463,7 @@ class Sequencer(object):
                 raise ValueError("bad type: {}".format(type(tests)))
 
         class Edge(object):
-            
+
             def __init__(self, parent, test, style):
                 self.parent = parent
                 self.test = test
@@ -544,56 +543,26 @@ class Sequencer(object):
         return _DIGRAPH_FMT.format(name=_make_filename(self.name),
                                    deps='\n'.join([str(dep) for dep in deps]))
 
-
-class Sequence(object):
-
-    def __init__(self,
-                 name,
-                 **kwargs):
-        self.sequencer = Sequencer(name, **kwargs)
-
-    def run(self):
-        """The sequence. To be implemented by the subclass.
+    def report(self):
+        """Print a summary and create a dot graph image.
 
         """
 
-        pass
+        print(self.summary())
 
-    def execute(self,
-                testcase_filter=None,
-                dry_run=False,
-                stop_on_failure=True):
-        """Run the sequence, print a report and write a dot graph to file.
+        filename = _make_filename(self.name)
+        filename_dot = filename + ".dot"
+        filename_png = filename + ".png"
 
-        """
-
-        def report(): 
-            print(self.sequencer.report())
-
-            filename = _make_filename(self.sequencer.name)
-            filename_dot = filename + ".dot"
-            filename_png = filename + ".png"
-
-            with open(filename_dot, "w") as fout:
-                fout.write(self.sequencer.dot_digraph())
-
-            try:
-                command = ["dot", "-Tpng", "-Gdpi=200", "-o", filename_png, filename_dot]
-                subprocess.check_call(command)
-            except subprocess.CalledProcessError:
-                print("Unable to create image from dot file '{}' using command '{}'".format(
-                    filename_dot, ' '.join(command)))
-            except OSError:
-                print(("Unable to create image from dot file '{}'. Program 'dot' is not "
-                       "installed.").format(filename_dot))
-
-        self.sequencer.set_testcase_filter(testcase_filter)
-        self.sequencer.set_dry_run(dry_run)
-        self.sequencer.set_stop_on_failure(stop_on_failure)
+        with open(filename_dot, "w") as fout:
+            fout.write(self.dot_digraph())
 
         try:
-            self.run()
-            report()
-        except:
-            report()
-            raise
+            command = ["dot", "-Tpng", "-Gdpi=200", "-o", filename_png, filename_dot]
+            subprocess.check_call(command)
+        except subprocess.CalledProcessError:
+            print("Unable to create image from dot file '{}' using command '{}'".format(
+                filename_dot, ' '.join(command)))
+        except OSError:
+            print(("Unable to create image from dot file '{}'. Program 'dot' is not "
+                   "installed.").format(filename_dot))

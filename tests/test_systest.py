@@ -1,6 +1,6 @@
 import unittest
 
-from systest import Sequence, SequencerTestFailedError
+from systest import Sequencer, SequencerTestFailedError
 
 from tests.testcases.named import NamedTest
 from tests.testcases.fail import FailTest
@@ -19,58 +19,53 @@ class SysTestTest(unittest.TestCase):
 
         """
 
-        class MySequence(Sequence):
-            
-            def __init__(self):
-                super(MySequence, self).__init__("serial_parallel")
+        sequencer = Sequencer("serial_parallel")
 
-            def run(self):
-                # Run test a and b.
-                self.sequencer.run(
-                    NamedTest("a"),
-                    NamedTest("b")
-                )
+        # Run test a and b.
+        sequencer.run(
+            NamedTest("a"),
+            NamedTest("b")
+        )
         
-                # Run a bunch of tests
-                try:
-                    self.sequencer.run([
-                        # tests in a tuple are executed in parallel
+        # Run a bunch of tests.
+        try:
+            sequencer.run([
+                # Tests in a tuple are executed in parallel.
+                (
+                    NamedTest("c", work_time=0.2),
+                    [
+                        NamedTest("d"),
+                        NamedTest("e"),
                         (
-                            NamedTest("c", work_time=0.2),
-                            [
-                                NamedTest("d"),
-                                NamedTest("e"),
-                                (
-                                    NamedTest("f"),
-                                    NamedTest("g")
-                                ),
-                                NamedTest("h"),
-                                (
-                                    NamedTest("i", work_time=0.1),
-                                    NamedTest("j"),
-                                    FailTest("a")
-                                ),
-                                NotExecutedTest("a")
-                            ],
-                            FailTest("b"),
-                            FailTest("c")
+                            NamedTest("f"),
+                            NamedTest("g")
                         ),
-                        NotExecutedTest("b")
-                    ])
-        
-                    # sequencer.run() should throw the
-                    # SequencerTestFailedError exception since the test
-                    # FailTest() fails
-                    raise
-        
-                except SequencerTestFailedError:
-                    self.sequencer.run(
-                        NamedTest("k"),
-                        NamedTest("l")
-                    )
+                        NamedTest("h"),
+                        (
+                            NamedTest("i", work_time=0.1),
+                            NamedTest("j"),
+                            FailTest("a")
+                        ),
+                        NotExecutedTest("a")
+                    ],
+                    FailTest("b"),
+                    FailTest("c")
+                ),
+                NotExecutedTest("b")
+            ])
+            
+            # sequencer.run() should throw the
+            # SequencerTestFailedError exception since the test
+            # FailTest() fails
+            raise
+            
+        except SequencerTestFailedError:
+            sequencer.run(
+                NamedTest("k"),
+                NamedTest("l")
+            )
 
-        # execute the sequence
-        MySequence().execute()
+        sequencer.report()
 
         self.assertEqual(NamedTest.count, 12)
         self.assertEqual(NotExecutedTest.count, 0)
@@ -81,22 +76,19 @@ class SysTestTest(unittest.TestCase):
 
         """
 
-        class MySequence(Sequence):
+        sequencer = Sequencer("continue_on_failure",
+                              stop_on_failure=False)
 
-            def __init__(self):
-                super(MySequence, self).__init__("continue_on_failure")
+        sequencer.run(
+            FailTest("1"),
+            NamedTest("a"),
+            [
+                FailTest("2"),
+                NamedTest("b")
+            ]
+        )
 
-            def run(self):
-                self.sequencer.run(
-                    FailTest("1"),
-                    NamedTest("a"),
-                    [
-                        FailTest("2"),
-                        NamedTest("b")
-                    ]
-                )
-
-        MySequence().execute(stop_on_failure=False)
+        sequencer.report()
 
         self.assertEqual(NamedTest.count, 2)
         self.assertEqual(NotExecutedTest.count, 0)
@@ -107,74 +99,85 @@ class SysTestTest(unittest.TestCase):
 
         """
 
-        class MySequence(Sequence):
+        sequencer = Sequencer("dot_digraph",
+                              dry_run=True,
+                              stop_on_failure=False)
 
-            def __init__(self):
-                super(MySequence, self).__init__("dot_digraph")
-
-            def run(self):
-                self.sequencer.run(
-                    NamedTest("a"),
-                    NamedTest("b")
-                )
-        
-                self.sequencer.run([
+        sequencer.run(
+            NamedTest("a"),
+            NamedTest("b"),
+            (
+                NamedTest("c", work_time=0.2),
+                [
+                    NamedTest("d"),
+                    NamedTest("e"),
                     (
-                        NamedTest("c", work_time=0.2),
-                        [
-                            NamedTest("d"),
-                            NamedTest("e"),
-                            (
-                                NamedTest("f", work_time=1.4),
-                                NamedTest("g")
-                            ),
-                            NamedTest("h"),
-                            (
-                                NamedTest("i", work_time=0.1),
-                                NamedTest("j", work_time=3.2),
-                                FailTest("a")
-                            ),
-                            NotExecutedTest("a")
-                        ],
-                        FailTest("b"),
-                        FailTest("c")
+                        NamedTest("f", work_time=1.4),
+                        NamedTest("g")
                     ),
-                    NotExecutedTest("b")
-                ])
-        
-                self.sequencer.run(
-                    NamedTest("k"),
-                    NamedTest("l")
-                )
+                    NamedTest("h"),
+                    (
+                        NamedTest("i", work_time=0.1),
+                        NamedTest("j", work_time=3.2),
+                        FailTest("a")
+                    ),
+                    NotExecutedTest("a")
+                ],
+                FailTest("b"),
+                FailTest("c")
+            ),
+            NotExecutedTest("b"),
+            NamedTest("k"),
+            NamedTest("l")
+        )
 
-        MySequence().execute(dry_run=True, stop_on_failure=False)
+        sequencer.report()
 
-    def test_sequence_test_filter(self):
+    def test_testcase_filter(self):
         """Use the test execution filter to run a specific testcase in a
         sequence.
 
         """
 
-        class MySequence(Sequence):
+        sequencer = Sequencer("filter",
+                              testcase_filter=["test_b"])
 
-            def __init__(self):
-                super(MySequence, self).__init__("filter")
+        sequencer.run(
+            FailTest("1"),
+            NamedTest("a"),
+            [
+                FailTest("2"),
+                NamedTest("b")
+            ]
+        )
 
-            def run(self):
-                self.sequencer.run(
-                    FailTest("1"),
-                    NamedTest("a"),
-                    [
-                        FailTest("2"),
-                        NamedTest("b")
-                    ]
-                )
-
-        MySequence().execute(["test_b"])
+        sequencer.report()
 
         self.assertEqual(NamedTest.count, 1)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 0)
+
+    def test_force_serial_execution(self):
+        """Force serial test case execution.
+
+        """
+
+        sequencer = Sequencer("forced_serial_execution",
+                              force_serial_execution=True)
+
+        try:
+            sequencer.run((
+                FailTest("1"),
+                NamedTest("a")
+            ))
+        except SequencerTestFailedError:
+            pass
+        
+        sequencer.report()
+
+        self.assertEqual(NamedTest.count, 0)
+        self.assertEqual(NotExecutedTest.count, 0)
+        self.assertEqual(FailTest.count, 1)
 
 
 if __name__ == '__main__':
