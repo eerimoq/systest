@@ -15,4 +15,4 @@ class FailTest(TestCase):
     def run(self):
         FailTest.count += 1
 
-        self.assertEqual(1, 0)
+        self.assert_equal(1, 0)
