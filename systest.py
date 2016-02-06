@@ -272,6 +272,7 @@ class Sequencer(object):
                  color=True,
                  stop_on_failure=True,
                  testcase_filter=None,
+                 testcase_skip_filter=None,
                  dry_run=False,
                  force_serial_execution=False):
         self.name = name
@@ -285,13 +286,20 @@ class Sequencer(object):
         self.execution_time = 0.0
         self.color = color
         self.testcase_filter = testcase_filter
+        self.testcase_skip_filter = testcase_skip_filter
         self.force_serial_execution = force_serial_execution
 
     def is_testcase_enabled(self, test):
-        if self.testcase_filter is None:
-            return True
+        enabled = True
 
-        return test.name in self.testcase_filter
+        if self.testcase_filter is not None:
+            enabled = test.name in self.testcase_filter
+
+        if enabled:
+            if self.testcase_skip_filter is not None:
+                enabled = test.name not in self.testcase_skip_filter
+
+        return enabled
 
     def log(self, text):
         """Write given text to the output stream. The default output stream is

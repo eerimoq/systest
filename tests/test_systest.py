@@ -139,8 +139,11 @@ class SysTestTest(unittest.TestCase):
 
         """
 
+        # A testcase in `testcase_skip_filter` will be skipped even if it is
+        # in `testcase_filter`.
         sequencer = Sequencer("filter",
-                              testcase_filter=["test_b"])
+                              testcase_filter=["fail_1", "test_b"],
+                              testcase_skip_filter=["fail_1"])
 
         sequencer.run(
             FailTest("1"),
