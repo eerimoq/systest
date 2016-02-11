@@ -42,7 +42,7 @@ has been executed, ``MyTestCase("5")`` is executed. Then the sequence ends.
            super(MyTestCase, self).__init__()
            self.name = "my_testcase_" + name
        def run(self):
-           self.log("Hello!")
+           print("Hello!")
 
    sequencer = Sequencer("my_sequence")
 

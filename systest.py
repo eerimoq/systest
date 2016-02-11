@@ -245,14 +245,6 @@ class TestCase(object):
 
         return 0.0
 
-    def log(self, text):
-        """Write given text to the sequencer log.
-
-        """
-
-        entry = self.sequencer.format_log_entry(self.name + " " + text)
-        self.sequencer.log(entry)
-
     def assert_equal(self, first, second):
         """Raise an exception if ``first`` and ``second`` are not equal.
 
