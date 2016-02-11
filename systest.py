@@ -118,8 +118,7 @@ class _TestThread(threading.Thread):
 
     def run_test(self, test):
         print(_TEST_HEADER_FMT.format(name=test.name,
-                                      description=test.__doc__),
-              file=self.sequencer.output_stream)
+                                      description=test.__doc__))
 
         test.sequencer = self.sequencer
 
@@ -143,8 +142,7 @@ class _TestThread(threading.Thread):
 
             print(_TEST_FOOTER_FMT.format(name=test.name,
                                           result=result,
-                                          duration=_human_time(execution_time)),
-                  file=self.sequencer.output_stream)
+                                          duration=_human_time(execution_time)))
 
             test.result = result
             test.execution_time = execution_time
@@ -268,7 +266,6 @@ class Sequencer(object):
 
     def __init__(self,
                  name,
-                 output_stream=None,
                  color=True,
                  stop_on_failure=True,
                  testcase_filter=None,
@@ -276,10 +273,6 @@ class Sequencer(object):
                  dry_run=False,
                  force_serial_execution=False):
         self.name = name
-        if output_stream is None:
-            self.output_stream = sys.stdout
-        else:
-            self.output_stream = output_stream
         self.stop_on_failure = stop_on_failure
         self.dry_run = dry_run
         self.tests = None
@@ -300,25 +293,6 @@ class Sequencer(object):
                 enabled = test.name not in self.testcase_skip_filter
 
         return enabled
-
-    def log(self, text):
-        """Write given text to the output stream. The default output stream is
-        standard output.
-
-        """
-
-        print(text, file=self.output_stream)
-
-    def format_log_entry(self, text=None):
-        """Write a timestamp and given text to the output stream. The default
-        output stream is standard output.
-
-        """
-
-        if text is None:
-            return ""
-        else:
-            return str(datetime.datetime.now()) + " " + text
 
     def run(self, *tests):
         """Run given testcase(s).
@@ -355,8 +329,7 @@ class Sequencer(object):
             print(_RUN_HEADER_FMT.format(name=self.name,
                                          date=datetime.datetime.now(),
                                          node=platform.node(),
-                                         user=getpass.getuser()),
-                  file=self.output_stream)
+                                         user=getpass.getuser()))
             self.tests = []
 
         self.tests += list(tests)

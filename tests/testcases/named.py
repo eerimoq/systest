@@ -18,7 +18,7 @@ class NamedTest(TestCase):
     def run(self):
         NamedTest.count += 1
         time.sleep(self.work_time)
-        self.log("Named test({}) run function called from thread {}.".format(
+        print("Named test({}) run function called from thread {}.".format(
             self.name,
             threading.current_thread()))
 
