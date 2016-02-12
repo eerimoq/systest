@@ -72,35 +72,35 @@ The output is:
    Name: my_testcase_1
    Description:
    None
-   2016-02-02 18:42:40.488127 my_testcase_1 Hello!
+   Hello!
    
    my_testcase_1: PASSED in 0m 0s
    ---------------------------------------------------------------
    Name: my_testcase_2
    Description:
    None
-   2016-02-02 18:42:40.490369 my_testcase_2 Hello!
+   Hello!
    
    my_testcase_2: PASSED in 0m 0s
    ---------------------------------------------------------------
    Name: my_testcase_3
    Description:
    None
-   2016-02-02 18:42:40.491976 my_testcase_3 Hello!
+   Hello!
    
    my_testcase_3: PASSED in 0m 0s
    ---------------------------------------------------------------
    Name: my_testcase_4
    Description:
    None
-   2016-02-02 18:42:40.494298 my_testcase_4 Hello!
+   Hello!
    
    my_testcase_4: PASSED in 0m 0s
    ---------------------------------------------------------------
    Name: my_testcase_5
    Description:
    None
-   2016-02-02 18:42:40.496103 my_testcase_5 Hello!
+   Hello!
    
    my_testcase_5: PASSED in 0m 0s
    
