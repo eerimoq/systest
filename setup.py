@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='systest',
-      version='1.1.0',
+      version='1.2.0',
       description=('System test framework with serial and parallel execution.'),
       long_description=open('README.rst', 'r').read(),
       author='Erik Moqvist',
