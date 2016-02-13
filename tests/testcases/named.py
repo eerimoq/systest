@@ -1,7 +1,10 @@
 from systest import TestCase
+
 import threading
 import time
+import logging
 
+LOGGER = logging.getLogger(__name__)
 
 class NamedTest(TestCase):
     """Named test printing it's value.
@@ -18,9 +21,9 @@ class NamedTest(TestCase):
     def run(self):
         NamedTest.count += 1
         time.sleep(self.work_time)
-        print("Named test({}) run function called from thread {}.".format(
+        LOGGER.info("Named test(%s) run function called from thread %s.",
             self.name,
-            threading.current_thread()))
+            threading.current_thread())
 
     def dry_run(self):
         return self.work_time

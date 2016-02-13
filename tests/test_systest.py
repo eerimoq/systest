@@ -1,4 +1,5 @@
 import unittest
+import logging
 
 from systest import Sequencer, SequencerTestFailedError
 
@@ -181,6 +182,10 @@ class SysTestTest(unittest.TestCase):
         self.assertEqual(NamedTest.count, 0)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 1)
+
+
+logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s",
+                    level=logging.INFO)
 
 
 if __name__ == '__main__':
