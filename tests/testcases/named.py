@@ -21,9 +21,9 @@ class NamedTest(TestCase):
     def run(self):
         NamedTest.count += 1
         time.sleep(self.work_time)
-        LOGGER.info("Named test(%s) run function called from thread %s.",
-            self.name,
-            threading.current_thread())
+        LOGGER.debug("Named test(%s) run function called from thread %s.",
+                     self.name,
+                     threading.current_thread())
 
     def dry_run(self):
         return self.work_time

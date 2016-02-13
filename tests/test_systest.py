@@ -1,7 +1,7 @@
 import unittest
-import logging
 
-from systest import Sequencer, SequencerTestFailedError
+import systest
+from systest import Sequencer, SequencerTestFailedError, ColorFormatter
 
 from tests.testcases.named import NamedTest
 from tests.testcases.fail import FailTest
@@ -184,9 +184,7 @@ class SysTestTest(unittest.TestCase):
         self.assertEqual(FailTest.count, 1)
 
 
-logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s",
-                    level=logging.INFO)
-
+systest.configure_logging()
 
 if __name__ == '__main__':
     unittest.main()

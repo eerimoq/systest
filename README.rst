@@ -35,17 +35,27 @@ has been executed, ``MyTestCase("5")`` is executed. Then the sequence ends.
 
 .. code-block:: python
 
-   from systest import TestCase, Sequencer
+   import logging
+   from systest import TestCase, Sequencer, configure_logging
 
+   LOGGER = logging.getLogger(__name__)
+
+   # Define a testcase.
    class MyTestCase(TestCase):
+
        def __init__(self, name):
            super(MyTestCase, self).__init__()
            self.name = "my_testcase_" + name
+
        def run(self):
-           print("Hello!")
+           LOGGER.debug("Hello!")
+
+   # Configure the logging module.
+   configure_logging()
 
    sequencer = Sequencer("my_sequence")
 
+   # Run the sequence.
    sequencer.run([
            MyTestCase("1"),
            (
@@ -58,6 +68,7 @@ has been executed, ``MyTestCase("5")`` is executed. Then the sequence ends.
            MyTestCase("5")
        ])
 
+   # Print the report.
    sequencer.report()
 
 The output is:

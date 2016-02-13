@@ -7,6 +7,7 @@ import getpass
 import platform
 import string
 import subprocess
+import logging
 
 __author__ = 'Erik Moqvist'
 
@@ -42,162 +43,59 @@ _DIGRAPH_FMT = """digraph {name} {{
 }}
 """
 
-def _make_filename(text):
-    result = ""
-
-    for char in text:
-        if char in string.digits + string.ascii_letters + "._":
-            result += char
-        else:
-            result += "_"
-
-    return result
+LOGGER = logging.getLogger(__name__)
 
 
-def _color_passed(text):
-    return '\033[0;32m' + text + '\033[0m'
+def configure_logging(filename=None):
+    """Configure the logging module to write output to the console and a
+    file.
 
+    The console log level is INFO.
 
-def _color_failed(text):
-    return '\033[0;31m' + text + '\033[0m'
-
-
-def _color_skipped(text):
-    return '\033[0;33m' + text + '\033[0m'
-
-
-def _color_result(result):
-    if result == TestCase.PASSED:
-        return _color_passed(TestCase.PASSED)
-    elif result == TestCase.FAILED:
-        return _color_failed(TestCase.FAILED)
-    elif result == TestCase.SKIPPED:
-        return _color_skipped(TestCase.SKIPPED)
-    else:
-        raise ValueError("bad result: {}".format(result))
-
-
-def _flatten(l):
-    """Flatten given list ``l``.
-
-    [[1], [2]] -> [1, 2]
+    The file log level is DEBUG.
 
     """
 
-    return [item for sublist in l for item in sublist]
+    # Configure the logging module.
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+
+    # Use the color formatter for console output.
+    stdout_handler = logging.StreamHandler()
+    stdout_handler.setFormatter(ColorFormatter())
+    stdout_handler.setLevel(logging.INFO)
+    root_logger.addHandler(stdout_handler)
+
+    # Add a prefix to entries written to file.
+    if not filename:
+        filename = "systest"
+    filename = "{}-{}.log".format(filename, datetime.datetime.now())
+    file_handler = logging.FileHandler(_make_filename(filename), "w")
+    file_handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
+    root_logger.addHandler(file_handler)
 
 
-def _human_time(seconds):
-    mins = int(seconds // 60)
-    secs = int(seconds - 60 * mins)
+def log_lines(text):
+    """Create a log entry of each line in given text.
 
-    return "{}m {}s".format(mins, secs)
+    """
+
+    for line in text.splitlines():
+        LOGGER.info(line)
 
 
-class _TestThread(threading.Thread):
+class ColorFormatter(logging.Formatter):
+    """Adds color to the log entries.
 
-    def __init__(self, test, sequencer):
-        super(_TestThread, self).__init__()
-        self.test = test
-        self.sequencer = sequencer
-        self.result = None
+    """
 
-    def run(self):
-        """Run the test, list of tests or parallel tests.
-
-        """
-
-        self.result = TestCase.FAILED
-
-        try:
-            self.run_tests(self.test)
-            self.result = TestCase.PASSED
-        except SequencerTestFailedError:
-            pass
-
-    def run_test(self, test):
-        print(_TEST_HEADER_FMT.format(name=test.name,
-                                      description=test.__doc__))
-
-        test.sequencer = self.sequencer
-
-        try:
-            result = TestCase.FAILED
-
-            # run the test
-            if self.sequencer.dry_run:
-                start_time = None
-                execution_time = test.dry_run()
-            else:
-                start_time = time.time()
-                test.run()
-
-            result = TestCase.PASSED
-        finally:
-            finish_time = time.time()
-
-            if start_time is not None:
-                execution_time = (finish_time - start_time)
-
-            print(_TEST_FOOTER_FMT.format(name=test.name,
-                                          result=result,
-                                          duration=_human_time(execution_time)))
-
-            test.result = result
-            test.execution_time = execution_time
-            test.finish_time = finish_time
-
-    def run_sequential_tests(self, tests):
-        """Run all tests in the list in sequential order.
-
-        """
-
-        for test in tests:
-            thread = _TestThread(test, self.sequencer)
-            thread.start()
-            thread.join()
-
-            # raise an exception if the test failed
-            if self.sequencer.stop_on_failure and thread.result == TestCase.FAILED:
-                raise SequencerTestFailedError("The testcase failed.")
-
-    def run_parallel_tests(self, tests):
-        """Start each test in the tests tuple in a separate thread.
-
-        """
-
-        # run each test in a separate thread
-        children = []
-
-        for test in tests:
-            thread = _TestThread(test, self.sequencer)
-            thread.start()
-            children.append(thread)
-
-        # wait for all children to finish their execution
-        for child in children:
-            child.join()
-
-        # raise an exception if at least one test failed
-        for child in children:
-            if child.result == TestCase.FAILED:
-                raise SequencerTestFailedError("At least one of the parallel testcases failed.")
-
-    def run_tests(self, tests):
-        """Run the test(s).
-
-        """
-
-        if isinstance(tests, TestCase):
-            if self.sequencer.is_testcase_enabled(tests):
-                self.run_test(tests)
-        elif isinstance(tests, list):
-            self.run_sequential_tests(tests)
-        elif isinstance(tests, tuple):
-            if self.sequencer.force_serial_execution:
-                self.run_sequential_tests(tests)
-            else:
-                self.run_parallel_tests(tests)
+    def format(self, record):
+        formatted = super(ColorFormatter, self).format(record)
+        formatted = formatted.replace("PASSED", '\033[0;32mPASSED\033[0m')
+        formatted = formatted.replace("FAILED", '\033[0;31mFAILED\033[0m')
+        formatted = formatted.replace("SKIPPED", '\033[0;33mSKIPPED\033[0m')
+        
+        return formatted
 
 
 class SequencerTestFailedError(Exception):
@@ -257,7 +155,6 @@ class Sequencer(object):
 
     def __init__(self,
                  name,
-                 color=True,
                  stop_on_failure=True,
                  testcase_filter=None,
                  testcase_skip_filter=None,
@@ -268,7 +165,6 @@ class Sequencer(object):
         self.dry_run = dry_run
         self.tests = None
         self.execution_time = 0.0
-        self.color = color
         self.testcase_filter = testcase_filter
         self.testcase_skip_filter = testcase_skip_filter
         self.force_serial_execution = force_serial_execution
@@ -317,10 +213,10 @@ class Sequencer(object):
 
         # Print the header the first time the function is called.
         if self.tests is None:
-            print(_RUN_HEADER_FMT.format(name=self.name,
-                                         date=datetime.datetime.now(),
-                                         node=platform.node(),
-                                         user=getpass.getuser()))
+            log_lines(_RUN_HEADER_FMT.format(name=self.name,
+                                             date=datetime.datetime.now(),
+                                             node=platform.node(),
+                                             user=getpass.getuser()))
             self.tests = []
 
         self.tests += list(tests)
@@ -350,8 +246,6 @@ class Sequencer(object):
                 result = test.result
             else:
                 result = TestCase.SKIPPED
-            if self.color:
-                result = _color_result(result)
 
             return [fmt.format(result=result)]
 
@@ -520,7 +414,7 @@ class Sequencer(object):
 
         """
 
-        print(self.summary())
+        log_lines(self.summary())
 
         filename = _make_filename(self.name)
         filename_dot = filename + ".dot"
@@ -538,3 +432,138 @@ class Sequencer(object):
         except OSError:
             print(("Unable to create image from dot file '{}'. Program 'dot' is not "
                    "installed.").format(filename_dot))
+
+
+def _make_filename(text):
+    result = ""
+
+    for char in text:
+        if char in string.digits + string.ascii_letters + "._":
+            result += char
+        else:
+            result += "_"
+
+    return result
+
+
+def _flatten(l):
+    """Flatten given list ``l``.
+
+    [[1], [2]] -> [1, 2]
+
+    """
+
+    return [item for sublist in l for item in sublist]
+
+
+def _human_time(seconds):
+    mins = int(seconds // 60)
+    secs = int(seconds - 60 * mins)
+
+    return "{}m {}s".format(mins, secs)
+
+
+class _TestThread(threading.Thread):
+
+    def __init__(self, test, sequencer):
+        super(_TestThread, self).__init__()
+        self.test = test
+        self.sequencer = sequencer
+        self.result = None
+
+    def run(self):
+        """Run the test, list of tests or parallel tests.
+
+        """
+
+        self.result = TestCase.FAILED
+
+        try:
+            self.run_tests(self.test)
+            self.result = TestCase.PASSED
+        except SequencerTestFailedError:
+            pass
+
+    def run_test(self, test):
+        log_lines(_TEST_HEADER_FMT.format(name=test.name,
+                                          description=test.__doc__))
+
+        test.sequencer = self.sequencer
+
+        try:
+            result = TestCase.FAILED
+
+            # run the test
+            if self.sequencer.dry_run:
+                start_time = None
+                execution_time = test.dry_run()
+            else:
+                start_time = time.time()
+                test.run()
+
+            result = TestCase.PASSED
+        finally:
+            finish_time = time.time()
+
+            if start_time is not None:
+                execution_time = (finish_time - start_time)
+
+            log_lines(_TEST_FOOTER_FMT.format(name=test.name,
+                                              result=result,
+                                              duration=_human_time(execution_time)))
+
+            test.result = result
+            test.execution_time = execution_time
+            test.finish_time = finish_time
+
+    def run_sequential_tests(self, tests):
+        """Run all tests in the list in sequential order.
+
+        """
+
+        for test in tests:
+            thread = _TestThread(test, self.sequencer)
+            thread.start()
+            thread.join()
+
+            # raise an exception if the test failed
+            if self.sequencer.stop_on_failure and thread.result == TestCase.FAILED:
+                raise SequencerTestFailedError("The testcase failed.")
+
+    def run_parallel_tests(self, tests):
+        """Start each test in the tests tuple in a separate thread.
+
+        """
+
+        # run each test in a separate thread
+        children = []
+
+        for test in tests:
+            thread = _TestThread(test, self.sequencer)
+            thread.start()
+            children.append(thread)
+
+        # wait for all children to finish their execution
+        for child in children:
+            child.join()
+
+        # raise an exception if at least one test failed
+        for child in children:
+            if child.result == TestCase.FAILED:
+                raise SequencerTestFailedError("At least one of the parallel testcases failed.")
+
+    def run_tests(self, tests):
+        """Run the test(s).
+
+        """
+
+        if isinstance(tests, TestCase):
+            if self.sequencer.is_testcase_enabled(tests):
+                self.run_test(tests)
+        elif isinstance(tests, list):
+            self.run_sequential_tests(tests)
+        elif isinstance(tests, tuple):
+            if self.sequencer.force_serial_execution:
+                self.run_sequential_tests(tests)
+            else:
+                self.run_parallel_tests(tests)
