@@ -13,7 +13,7 @@ Description
 Execute a sequence of test cases in serial and/or parallel.
 
 Test cases in a list are executed in serial and test cases in a tuple are
-executed in parallel in separate Python threads.
+executed in parallel, in separate Python threads.
 
 This framework is created with production test in mind, trying to make it
 possible to minimize the test execution time by executing tests in parallel. The
@@ -48,7 +48,7 @@ has been executed, ``MyTestCase("5")`` is executed. Then the sequence ends.
            self.name = "my_testcase_" + name
 
        def run(self):
-           LOGGER.debug("Hello!")
+           LOGGER.info("Hello!")
 
    # Configure the logging module.
    configure_logging()

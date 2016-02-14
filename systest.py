@@ -48,11 +48,12 @@ LOGGER = logging.getLogger(__name__)
 
 def configure_logging(filename=None):
     """Configure the logging module to write output to the console and a
-    file.
+    file. The file name is `filename` if `filename` is not None,
+    otherwise the file name is ``systest_<date>.log``.
 
-    The console log level is INFO.
+    The console log level is ``INFO``.
 
-    The file log level is DEBUG.
+    The file log level is ``DEBUG``.
 
     """
 

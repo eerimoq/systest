@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 
 if __name__ == "__main__":
     setup(name='systest',
@@ -17,10 +17,12 @@ if __name__ == "__main__":
               'Programming Language :: Python :: 2',
               'Programming Language :: Python :: 3',
           ],
-          keywords=['test',
-                'system',
-                'sequencer',
-                'parallel'],
+          keywords=[
+              'test',
+              'system',
+              'sequencer',
+              'parallel'
+          ],
           url='https://github.com/eerimoq/systest',
           py_modules=['systest'],
           test_suite="tests")
