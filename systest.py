@@ -10,6 +10,7 @@ import subprocess
 import logging
 
 __author__ = 'Erik Moqvist'
+__version__ = '1.6.0'
 
 _RUN_HEADER_FMT ="""
 Name: {name}

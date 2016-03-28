@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
 from setuptools import setup
-
-VERSION = "1.5.0"
+import systest
 
 if __name__ == "__main__":
     setup(name='systest',
-          version=VERSION,
+          version=systest.__version__,
           description=('System test framework with serial and parallel execution.'),
           long_description=open('README.rst', 'r').read(),
           author='Erik Moqvist',
