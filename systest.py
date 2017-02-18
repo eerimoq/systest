@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import sys
 import threading
 import time
 import datetime
@@ -12,7 +13,7 @@ import traceback
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '2.0.0'
+__version__ = '2.1.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -105,6 +106,10 @@ class ColorFormatter(logging.Formatter):
 
 
 class SequencerTestFailedError(Exception):
+    pass
+
+
+class SequencerTestSkippedError(Exception):
     pass
 
 
@@ -488,6 +493,8 @@ class _TestThread(threading.Thread):
         try:
             self.run_tests(self.test)
             self.result = TestCase.PASSED
+        except SequencerTestSkippedError:
+            self.result = TestCase.SKIPPED
         except SequencerTestFailedError:
             pass
 
@@ -506,7 +513,17 @@ class _TestThread(threading.Thread):
                 execution_time = test.dry_run()
             else:
                 start_time = time.time()
-                test.run()
+                try:
+                    test.run()
+                except SequencerTestSkippedError:
+                    result = TestCase.SKIPPED
+                    raise
+                except:
+                    for entry in traceback.format_exception(*sys.exc_info()):
+                        for line in entry.splitlines():
+                            LOGGER.error(line.rstrip())
+
+                    raise
 
             result = TestCase.PASSED
         finally:
@@ -535,11 +552,11 @@ class _TestThread(threading.Thread):
 
         """
 
-        prev_test_failed = False
+        prev_test_failed_or_skipped = False
 
         for test in tests:
-            if prev_test_failed:
-                prev_test_failed = False
+            if prev_test_failed_or_skipped:
+                prev_test_failed_or_skipped = False
                 if isinstance(test, list):
                     continue
 
@@ -547,9 +564,9 @@ class _TestThread(threading.Thread):
             thread.start()
             thread.join()
 
-            if thread.result == TestCase.FAILED:
-                prev_test_failed = True
-                self.result = TestCase.FAILED
+            if thread.result in [TestCase.FAILED, TestCase.SKIPPED]:
+                prev_test_failed_or_skipped = True
+                self.result = thread.result
 
     def run_parallel_tests(self, tests):
         """Start each test in the tests tuple in a separate thread.
