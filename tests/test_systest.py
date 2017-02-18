@@ -1,7 +1,7 @@
 import unittest
 
 import systest
-from systest import Sequencer, SequencerTestFailedError, ColorFormatter
+from systest import Sequencer
 
 from tests.testcases.named import NamedTest
 from tests.testcases.fail import FailTest
@@ -22,52 +22,45 @@ class SysTestTest(unittest.TestCase):
 
         sequencer = Sequencer("serial_parallel")
 
-        # Run test a and b.
-        sequencer.run(
-            NamedTest("a"),
-            NamedTest("b")
-        )
-        
         # Run a bunch of tests.
-        try:
-            sequencer.run([
-                # Tests in a tuple are executed in parallel.
+        result = sequencer.run(
+            NamedTest("a"),
+            [
+                NamedTest("b")
+            ],
+            # Tests in a tuple are executed in parallel.
+            (
+                NamedTest("c", work_time=0.2),
+                NamedTest("d"),
+                NamedTest("e"),
                 (
-                    NamedTest("c", work_time=0.2),
-                    [
-                        NamedTest("d"),
-                        NamedTest("e"),
-                        (
-                            NamedTest("f"),
-                            NamedTest("g")
-                        ),
-                        NamedTest("h"),
-                        (
-                            NamedTest("i", work_time=0.1),
-                            NamedTest("j"),
-                            FailTest("a")
-                        ),
-                        NotExecutedTest("a")
-                    ],
-                    FailTest("b"),
-                    FailTest("c")
+                    NamedTest("f"),
+                    NamedTest("g")
                 ),
+                NamedTest("h"),
+                (
+                    NamedTest("i", work_time=0.1),
+                    NamedTest("j"),
+                    FailTest("a")
+                ),
+                [
+                    FailTest("b"),
+                    [
+                        NotExecutedTest("a")
+                    ]
+                ],
+                FailTest("c")
+            ),
+            [
                 NotExecutedTest("b")
-            ])
-            
-            # sequencer.run() should throw the
-            # SequencerTestFailedError exception since the test
-            # FailTest() fails
-            raise
-            
-        except SequencerTestFailedError:
-            sequencer.run(
-                NamedTest("k"),
-                NamedTest("l")
-            )
+            ],
+            NamedTest("k"),
+            NamedTest("l")
+        )
 
         sequencer.report()
 
+        self.assertEqual(result, (12, 3, 0))
         self.assertEqual(NamedTest.count, 12)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 3)
@@ -77,20 +70,20 @@ class SysTestTest(unittest.TestCase):
 
         """
 
-        sequencer = Sequencer("continue_on_failure",
-                              stop_on_failure=False)
+        sequencer = Sequencer("continue_on_failure")
 
-        sequencer.run(
+        result = sequencer.run(
             FailTest("1"),
             NamedTest("a"),
-            [
+            (
                 FailTest("2"),
                 NamedTest("b")
-            ]
+            )
         )
 
         sequencer.report()
 
+        self.assertEqual(result, (2, 2, 0))
         self.assertEqual(NamedTest.count, 2)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 2)
@@ -101,10 +94,9 @@ class SysTestTest(unittest.TestCase):
         """
 
         sequencer = Sequencer("dot_digraph",
-                              dry_run=True,
-                              stop_on_failure=False)
+                              dry_run=True)
 
-        sequencer.run(
+        result = sequencer.run(
             NamedTest("a"),
             NamedTest("b"),
             (
@@ -134,6 +126,8 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
+        self.assertEqual(result, (17, 0, 0))
+
     def test_testcase_filter(self):
         """Use the test execution filter to run a specific testcase in a
         sequence.
@@ -146,17 +140,18 @@ class SysTestTest(unittest.TestCase):
                               testcase_filter=["fail_1", "test_b"],
                               testcase_skip_filter=["fail_1"])
 
-        sequencer.run(
+        result = sequencer.run(
             FailTest("1"),
             NamedTest("a"),
-            [
+            (
                 FailTest("2"),
                 NamedTest("b")
-            ]
+            )
         )
 
         sequencer.report()
 
+        self.assertEqual(result, (1, 0, 0))
         self.assertEqual(NamedTest.count, 1)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 0)
@@ -169,17 +164,15 @@ class SysTestTest(unittest.TestCase):
         sequencer = Sequencer("forced_serial_execution",
                               force_serial_execution=True)
 
-        try:
-            sequencer.run((
-                FailTest("1"),
-                NamedTest("a")
-            ))
-        except SequencerTestFailedError:
-            pass
-        
+        result = sequencer.run((
+            FailTest("1"),
+            NamedTest("a")
+        ))
+
         sequencer.report()
 
-        self.assertEqual(NamedTest.count, 0)
+        self.assertEqual(result, (1, 1, 0))
+        self.assertEqual(NamedTest.count, 1)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 1)
 

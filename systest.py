@@ -8,9 +8,12 @@ import platform
 import string
 import subprocess
 import logging
+import traceback
+
 
 __author__ = 'Erik Moqvist'
-__version__ = '1.6.0'
+__version__ = '2.0.0'
+
 
 _RUN_HEADER_FMT ="""
 Name: {name}
@@ -18,7 +21,8 @@ Date: {date}
 Node: {node}
 User: {user}"""
 
-_TEST_HEADER_FMT = """---------------------------------------------------------------
+_TEST_HEADER_FMT = """
+---------------------------------------------------------------
 Name: {name}
 Description:
 {description}"""
@@ -71,8 +75,8 @@ def configure_logging(filename=None):
     # Add a prefix to entries written to file.
     if not filename:
         filename = "systest"
-    filename = "{}-{}.log".format(filename, datetime.datetime.now())
-    file_handler = logging.FileHandler(_make_filename(filename), "w")
+    filename = "{}-{}.log".format(filename, _make_filename(str(datetime.datetime.now())))
+    file_handler = logging.FileHandler(filename, "w")
     file_handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
     root_logger.addHandler(file_handler)
 
@@ -96,7 +100,7 @@ class ColorFormatter(logging.Formatter):
         formatted = formatted.replace("PASSED", '\033[0;32mPASSED\033[0m')
         formatted = formatted.replace("FAILED", '\033[0;31mFAILED\033[0m')
         formatted = formatted.replace("SKIPPED", '\033[0;33mSKIPPED\033[0m')
-        
+
         return formatted
 
 
@@ -150,26 +154,29 @@ class TestCase(object):
         """
 
         if first != second:
-            raise RuntimeError("{} != {}".format(first, second))
+            filename, line, _, code = traceback.extract_stack()[-2]
+            LOGGER.error('%s:%d: %s', filename, line, code)
+            raise SequencerTestFailedError()
 
 
 class Sequencer(object):
 
     def __init__(self,
                  name,
-                 stop_on_failure=True,
                  testcase_filter=None,
                  testcase_skip_filter=None,
                  dry_run=False,
                  force_serial_execution=False):
         self.name = name
-        self.stop_on_failure = stop_on_failure
         self.dry_run = dry_run
         self.tests = None
         self.execution_time = 0.0
         self.testcase_filter = testcase_filter
         self.testcase_skip_filter = testcase_skip_filter
         self.force_serial_execution = force_serial_execution
+        self.passed = 0
+        self.failed = 0
+        self.skipped = 0
 
     def is_testcase_enabled(self, test):
         enabled = True
@@ -232,9 +239,7 @@ class Sequencer(object):
         end_time = time.time()
         self.execution_time += (end_time - start_time)
 
-        # raise an exception if at least one test failed
-        if thread.result != TestCase.PASSED:
-            raise SequencerTestFailedError("At least one testcase failed.")
+        return self.passed, self.failed, self.skipped
 
     def summary(self):
         """Compile the test execution summary and return it as a string.
@@ -518,19 +523,33 @@ class _TestThread(threading.Thread):
             test.execution_time = execution_time
             test.finish_time = finish_time
 
+            if result == TestCase.PASSED:
+                self.sequencer.passed += 1
+            elif result == TestCase.FAILED:
+                self.sequencer.failed += 1
+            elif result == TestCase.SKIPPED:
+                self.sequencer.skipped += 1
+
     def run_sequential_tests(self, tests):
         """Run all tests in the list in sequential order.
 
         """
 
+        prev_test_failed = False
+
         for test in tests:
+            if prev_test_failed:
+                prev_test_failed = False
+                if isinstance(test, list):
+                    continue
+
             thread = _TestThread(test, self.sequencer)
             thread.start()
             thread.join()
 
-            # raise an exception if the test failed
-            if self.sequencer.stop_on_failure and thread.result == TestCase.FAILED:
-                raise SequencerTestFailedError("The testcase failed.")
+            if thread.result == TestCase.FAILED:
+                prev_test_failed = True
+                self.result = TestCase.FAILED
 
     def run_parallel_tests(self, tests):
         """Start each test in the tests tuple in a separate thread.
