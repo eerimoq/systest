@@ -1,4 +1,5 @@
 import unittest
+import json
 
 import systest
 from systest import Sequencer
@@ -64,6 +65,11 @@ class SysTestTest(unittest.TestCase):
         self.assertEqual(NamedTest.count, 12)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 3)
+
+        json_report = sequencer.summary_json()
+        print(json.dumps(json_report, indent=4))
+        self.assertEqual(json_report["name"], "serial_parallel")
+        self.assertEqual(len(json_report["testcases"]), 17)
 
     def test_continue_on_failure(self):
         """Run all tests even if a test fails.

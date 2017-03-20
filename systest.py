@@ -10,10 +10,12 @@ import string
 import subprocess
 import logging
 import traceback
+import json
+from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '2.1.0'
+__version__ = '2.2.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -288,6 +290,53 @@ class Sequencer(object):
         return _SUMMARY_FMT.format(summary=summary,
                                    execution_time=_human_time(self.execution_time))
 
+    def summary_json(self):
+        """Compile the test execution summary and return it as a JSON object.
+
+        """
+
+        def test(test):
+            if test.result:
+                result = test.result
+                execution_time = _human_time(test.execution_time)
+            else:
+                result = TestCase.SKIPPED
+                execution_time = None
+
+            return {
+                'name': test.name,
+                'description': test.__doc__.splitlines(),
+                'result': result,
+                'execution_time': execution_time
+            }
+
+        def sequential_tests(tests, testcases):
+            return [recursivly(test, testcases) for test in tests]
+
+        def parallel_tests(tests, testcases):
+            return [recursivly(test, testcases) for test in tests]
+
+        def recursivly(tests, testcases):
+            if isinstance(tests, TestCase):
+                testcases.append(test(tests))
+            elif isinstance(tests, list):
+                sequential_tests(tests, testcases)
+            elif isinstance(tests, tuple):
+                parallel_tests(tests, testcases)
+            else:
+                raise ValueError("bad type {}".format(type(tests)))
+
+        testcases = []
+        recursivly(self.tests, testcases)
+
+        return OrderedDict([
+            ('name', self.name),
+            ('date', str(datetime.datetime.now())),
+            ('node', platform.node()),
+            ('user', getpass.getuser()),
+            ('testcases', testcases)
+        ])
+
     def dot_digraph(self):
         """Create a graphviz dot digraph of given test sequence.
 
@@ -428,7 +477,13 @@ class Sequencer(object):
 
         log_lines(self.summary())
 
+
         filename = _make_filename(self.name)
+        filename_json = filename + ".json"
+
+        with open(filename_json, 'w') as fout:
+            fout.write(json.dumps(self.summary_json(), indent=4))
+
         filename_dot = filename + ".dot"
         filename_png = filename + ".png"
 
@@ -515,7 +570,8 @@ class _TestThread(threading.Thread):
                 start_time = time.time()
                 try:
                     test.run()
-                except SequencerTestSkippedError:
+                except SequencerTestSkippedError as e:
+                    LOGGER.info("testcase skipped: %s", e)
                     result = TestCase.SKIPPED
                     raise
                 except:
