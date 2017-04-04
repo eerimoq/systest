@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '2.2.0'
+__version__ = '3.0.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -569,7 +569,10 @@ class _TestThread(threading.Thread):
             else:
                 start_time = time.time()
                 try:
-                    test.run()
+                    if self.sequencer.is_testcase_enabled(test):
+                        test.run()
+                    else:
+                        raise SequencerTestSkippedError('Testcase disabled by filter.')
                 except SequencerTestSkippedError as e:
                     LOGGER.info("testcase skipped: %s", e)
                     result = TestCase.SKIPPED
@@ -608,11 +611,11 @@ class _TestThread(threading.Thread):
 
         """
 
-        prev_test_failed_or_skipped = False
+        prev_test_failed = False
 
         for test in tests:
-            if prev_test_failed_or_skipped:
-                prev_test_failed_or_skipped = False
+            if prev_test_failed:
+                prev_test_failed = False
                 if isinstance(test, list):
                     continue
 
@@ -620,8 +623,8 @@ class _TestThread(threading.Thread):
             thread.start()
             thread.join()
 
-            if thread.result in [TestCase.FAILED, TestCase.SKIPPED]:
-                prev_test_failed_or_skipped = True
+            if thread.result == TestCase.FAILED:
+                prev_test_failed = True
                 self.result = thread.result
 
     def run_parallel_tests(self, tests):
@@ -652,8 +655,7 @@ class _TestThread(threading.Thread):
         """
 
         if isinstance(tests, TestCase):
-            if self.sequencer.is_testcase_enabled(tests):
-                self.run_test(tests)
+            self.run_test(tests)
         elif isinstance(tests, list):
             self.run_sequential_tests(tests)
         elif isinstance(tests, tuple):

@@ -143,7 +143,7 @@ class SysTestTest(unittest.TestCase):
         # A testcase in `testcase_skip_filter` will be skipped even if it is
         # in `testcase_filter`.
         sequencer = Sequencer("filter",
-                              testcase_filter=["fail_1", "test_b"],
+                              testcase_filter=["fail_1", "test_b", "test_d"],
                               testcase_skip_filter=["fail_1"])
 
         result = sequencer.run(
@@ -152,13 +152,17 @@ class SysTestTest(unittest.TestCase):
             (
                 FailTest("2"),
                 NamedTest("b")
-            )
+            ),
+            NamedTest("c"),
+            [
+                NamedTest("d")
+            ]
         )
 
         sequencer.report()
 
-        self.assertEqual(result, (1, 0, 0))
-        self.assertEqual(NamedTest.count, 1)
+        self.assertEqual(result, (2, 0, 4))
+        self.assertEqual(NamedTest.count, 2)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 0)
 
