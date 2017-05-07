@@ -24,7 +24,7 @@ class SysTestTest(unittest.TestCase):
         sequencer = Sequencer("serial_parallel")
 
         # Run a bunch of tests.
-        result = sequencer.run(
+        passed, failed, skipped = sequencer.run(
             NamedTest("a"),
             [
                 NamedTest("b")
@@ -61,7 +61,9 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assertEqual(result, (12, 3, 0))
+        self.assertEqual(passed, 12)
+        self.assertEqual(failed, 3)
+        self.assertEqual(skipped, 2)
         self.assertEqual(NamedTest.count, 12)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 3)
@@ -70,6 +72,60 @@ class SysTestTest(unittest.TestCase):
         print(json.dumps(json_report, indent=4))
         self.assertEqual(json_report["name"], "serial_parallel")
         self.assertEqual(len(json_report["testcases"]), 17)
+
+    def test_serial_parallel_stop_on_failure(self):
+        """Run a sequence of serial and parallel tests and stop on failure.
+
+        """
+
+        sequencer = Sequencer("serial_parallel_stop_on_failure")
+
+        # Run a bunch of tests.
+        passed, failed, skipped = sequencer.run(
+            NamedTest("a"),
+            [
+                NamedTest("b")
+            ],
+            # Tests in a tuple are executed in parallel.
+            (
+                NamedTest("c", work_time=0.2),
+                NamedTest("d"),
+                NamedTest("e"),
+                (
+                    NamedTest("f"),
+                    NamedTest("g")
+                ),
+                NamedTest("h"),
+                (
+                    NamedTest("i", work_time=0.1),
+                    NamedTest("j"),
+                    FailTest("a")
+                ),
+                [
+                    FailTest("b"),
+                    [
+                        NotExecutedTest("a")
+                    ]
+                ],
+                FailTest("c")
+            ),
+            [
+                NotExecutedTest("b")
+            ],
+            NamedTest("k"),
+            NamedTest("l"),
+            continue_on_failure=False
+        )
+
+        sequencer.report()
+
+        self.assertTrue(passed >= 2)
+        self.assertTrue(failed >= 1)
+        self.assertTrue(skipped >= 1)
+        self.assertEqual(passed + failed + skipped, 17)
+        self.assertTrue(NamedTest.count >= 2)
+        self.assertEqual(NotExecutedTest.count, 0)
+        self.assertTrue(FailTest.count >= 1)
 
     def test_continue_on_failure(self):
         """Run all tests even if a test fails.
@@ -182,6 +238,27 @@ class SysTestTest(unittest.TestCase):
         sequencer.report()
 
         self.assertEqual(result, (1, 1, 0))
+        self.assertEqual(NamedTest.count, 1)
+        self.assertEqual(NotExecutedTest.count, 0)
+        self.assertEqual(FailTest.count, 1)
+
+    def test_cleanup(self):
+        """Test calling the run function twice, second time as cleanup. The
+        run_failed state is reset for each call to run.
+
+        """
+
+        sequencer = Sequencer("cleanup")
+
+        sequencer.run(FailTest("1"))
+        passed, failed, skipped = sequencer.run(NamedTest("cleanup"))
+
+        sequencer.report()
+
+        self.assertEqual(passed, 1)
+        self.assertEqual(failed, 1)
+        self.assertEqual(skipped, 0)
+
         self.assertEqual(NamedTest.count, 1)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 1)

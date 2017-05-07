@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.0.0'
+__version__ = '3.1.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -181,9 +181,8 @@ class Sequencer(object):
         self.testcase_filter = testcase_filter
         self.testcase_skip_filter = testcase_skip_filter
         self.force_serial_execution = force_serial_execution
-        self.passed = 0
-        self.failed = 0
-        self.skipped = 0
+        self.continue_on_failure = True
+        self.run_failed = False
 
     def is_testcase_enabled(self, test):
         enabled = True
@@ -197,7 +196,7 @@ class Sequencer(object):
 
         return enabled
 
-    def run(self, *tests):
+    def run(self, *tests, **kwargs):
         """Run given testcase(s).
 
         Test cases may be grouped into lists and tuples. All test
@@ -235,6 +234,8 @@ class Sequencer(object):
                                              user=getpass.getuser()))
             self.tests = []
 
+        self.continue_on_failure = kwargs.get('continue_on_failure', True)
+        self.run_failed = False
         self.tests += list(tests)
 
         start_time = time.time()
@@ -246,7 +247,44 @@ class Sequencer(object):
         end_time = time.time()
         self.execution_time += (end_time - start_time)
 
-        return self.passed, self.failed, self.skipped
+        return self.summary_count()
+
+    def summary_count(self):
+        """Compile the test execution summary and return it as a string.
+
+        """
+
+        def test(test, passed, failed, skipped):
+            if test.result == TestCase.PASSED:
+                passed += 1
+            elif test.result == TestCase.FAILED:
+                failed += 1
+            else:
+                skipped += 1
+
+            return passed, failed, skipped
+
+        def sequential_tests(tests, passed, failed, skipped):
+            for test in tests:
+                passed, failed, skipped = recursivly(test, passed, failed, skipped)
+            return passed, failed, skipped
+
+        def parallel_tests(tests, passed, failed, skipped):
+            for test in tests:
+                passed, failed, skipped = recursivly(test, passed, failed, skipped)
+            return passed, failed, skipped
+
+        def recursivly(tests, passed, failed, skipped):
+            if isinstance(tests, TestCase):
+                return test(tests, passed, failed, skipped)
+            elif isinstance(tests, list):
+                return sequential_tests(tests, passed, failed, skipped)
+            elif isinstance(tests, tuple):
+                return parallel_tests(tests, passed, failed, skipped)
+            else:
+                raise ValueError("bad type {}".format(type(tests)))
+
+        return recursivly(self.tests, 0, 0, 0)
 
     def summary(self):
         """Compile the test execution summary and return it as a string.
@@ -570,7 +608,13 @@ class _TestThread(threading.Thread):
                 start_time = time.time()
                 try:
                     if self.sequencer.is_testcase_enabled(test):
-                        test.run()
+                        if self.sequencer.continue_on_failure:
+                            test.run()
+                        else:
+                            if not self.sequencer.run_failed:
+                                test.run()
+                            else:
+                                raise SequencerTestSkippedError('Testcase skipped by failure.')
                     else:
                         raise SequencerTestSkippedError('Testcase disabled by filter.')
                 except SequencerTestSkippedError as e:
@@ -578,6 +622,8 @@ class _TestThread(threading.Thread):
                     result = TestCase.SKIPPED
                     raise
                 except:
+                    self.sequencer.run_failed = True
+
                     for entry in traceback.format_exception(*sys.exc_info()):
                         for line in entry.splitlines():
                             LOGGER.error(line.rstrip())
@@ -598,13 +644,6 @@ class _TestThread(threading.Thread):
             test.result = result
             test.execution_time = execution_time
             test.finish_time = finish_time
-
-            if result == TestCase.PASSED:
-                self.sequencer.passed += 1
-            elif result == TestCase.FAILED:
-                self.sequencer.failed += 1
-            elif result == TestCase.SKIPPED:
-                self.sequencer.skipped += 1
 
     def run_sequential_tests(self, tests):
         """Run all tests in the list in sequential order.
