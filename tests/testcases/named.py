@@ -1,4 +1,4 @@
-from systest import TestCase
+from systest import TestCase, SequencerTestFailedError
 
 import threading
 import time
@@ -24,6 +24,21 @@ class NamedTest(TestCase):
         LOGGER.debug("Named test(%s) run function called from thread %s.",
                      self.name,
                      threading.current_thread())
+
+        self.assert_true(True)
+        self.assert_equal(False, False)
+
+        with self.assert_raises(RuntimeError, 'foobar') as cm:
+            raise RuntimeError("foobar")
+
+        self.assert_equal(type(cm.exception), RuntimeError)
+        self.assert_equal(str(cm.exception), 'foobar')
+
+        try:
+            with self.assert_raises(TypeError):
+                raise RuntimeError()
+        except RuntimeError:
+            pass
 
     def dry_run(self):
         return self.work_time

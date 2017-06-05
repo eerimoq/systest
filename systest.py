@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.1.0'
+__version__ = '3.2.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -164,6 +164,45 @@ class TestCase(object):
             filename, line, _, code = traceback.extract_stack()[-2]
             LOGGER.error('%s:%d: %s', filename, line, code)
             raise SequencerTestFailedError()
+
+    def assert_true(self, condition):
+        """Raise an exception if given condition `condition` is false.
+
+        """
+
+        if not condition:
+            filename, line, _, code = traceback.extract_stack()[-2]
+            LOGGER.error('%s:%d: %s', filename, line, code)
+            raise SequencerTestFailedError()
+
+    def assert_raises(self, expected_type, expected_message=None):
+        """Raise an exception if no exception of given type `exception_type`
+        is raised.
+
+        """
+
+        class AssertRaises(object):
+
+            def __init__(self, expected_type, expected_message):
+                self.expected_type = expected_type
+                self.expected_message = expected_message
+                self.exception = None
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exception_type, exception_value, tb):
+                if exception_type is None:
+                    filename, line, _, code = traceback.extract_stack()[-2]
+                    LOGGER.error('%s:%d: %s', filename, line, code)
+                    raise SequencerTestFailedError()
+                elif exception_type == self.expected_type:
+                    self.exception = exception_type(exception_value)
+
+                    if self.expected_message in [None, str(exception_value)]:
+                        return True
+
+        return AssertRaises(expected_type, expected_message)
 
 
 class Sequencer(object):
