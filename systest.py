@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.2.0'
+__version__ = '3.2.1'
 
 
 _RUN_HEADER_FMT ="""
@@ -197,7 +197,11 @@ class TestCase(object):
                     LOGGER.error('%s:%d: %s', filename, line, code)
                     raise SequencerTestFailedError()
                 elif exception_type == self.expected_type:
-                    self.exception = exception_type(exception_value)
+                    # Python 2 and 3 compatibility.
+                    try:
+                        self.exception = exception_value.with_traceback(None)
+                    except AttributeError:
+                        self.exception = exception_value
 
                     if self.expected_message in [None, str(exception_value)]:
                         return True

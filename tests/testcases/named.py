@@ -6,6 +6,17 @@ import logging
 
 LOGGER = logging.getLogger(__name__)
 
+class MyError(Exception):
+
+    def __init__(self, foo, bar):
+        super(MyError, self).__init__()
+        self.foo = foo
+        self.bar = bar
+
+    def __str__(self):
+        return self.foo + self.bar
+    
+
 class NamedTest(TestCase):
     """Named test printing it's value.
 
@@ -28,11 +39,14 @@ class NamedTest(TestCase):
         self.assert_true(True)
         self.assert_equal(False, False)
 
-        with self.assert_raises(RuntimeError, 'foobar') as cm:
-            raise RuntimeError("foobar")
+        with self.assert_raises(MyError, 'foobar') as cm:
+            raise MyError('foo', 'bar')
 
-        self.assert_equal(type(cm.exception), RuntimeError)
+        self.assert_equal(type(cm.exception), MyError)
         self.assert_equal(str(cm.exception), 'foobar')
+
+        with self.assert_raises(RuntimeError):
+            raise RuntimeError()
 
         try:
             with self.assert_raises(TypeError):
