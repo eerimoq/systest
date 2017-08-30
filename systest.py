@@ -161,8 +161,12 @@ class TestCase(object):
         """
 
         if first != second:
-            filename, line, _, code = traceback.extract_stack()[-2]
-            LOGGER.error('%s:%d: %s', filename, line, code)
+            filename, line, _, _ = traceback.extract_stack()[-2]
+            LOGGER.error('%s:%d: Assertion error: %s != %s',
+                         filename,
+                         line,
+                         first,
+                         second)
             raise SequencerTestFailedError()
 
     def assert_true(self, condition):
