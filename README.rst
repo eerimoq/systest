@@ -12,26 +12,28 @@ Description
 
 Execute a sequence of test cases in serial and/or parallel.
 
-Test cases in a list are executed in serial and test cases in a tuple are
-executed in parallel, in separate Python threads.
+Test cases in a list are executed in serial and test cases in a tuple
+are executed in parallel, in separate Python threads.
 
-This framework is created with production test in mind, trying to make it
-possible to minimize the test execution time by executing tests in parallel. The
-framework is *not* indended as a replacement for ``unittest``, but rather to be
-a complement to it.
+This framework is created with integration/system test in mind. The
+framework is *not* indended as a replacement for ``unittest``, but
+rather to be a complement to it.
 
 Documentation: http://systest.readthedocs.org/en/latest
 
 Example usage
 =============
 
-See the test suite: https://github.com/eerimoq/systest/blob/master/tests/test_systest.py
+See the test suite:
+https://github.com/eerimoq/systest/blob/master/tests/test_systest.py
 
-For example, the sequence below starts with test case ``MyTestCase("1")``. When
-``MyTestCase("1")`` has been executed, ``MyTestCase("2")`` and the list of
-``MyTestCase("3")`` and ``MyTestCase("4")`` are executed in parallel. When both
-``MyTestCase("2")`` and the list of ``MyTestCase("3")`` and ``MyTestCase("4")``
-has been executed, ``MyTestCase("5")`` is executed. Then the sequence ends.
+For example, the sequence below starts with test case
+``MyTestCase("1")``. When ``MyTestCase("1")`` has been executed,
+``MyTestCase("2")`` and the list of ``MyTestCase("3")`` and
+``MyTestCase("4")`` are executed in parallel. When both
+``MyTestCase("2")`` and the list of ``MyTestCase("3")`` and
+``MyTestCase("4")`` has been executed, ``MyTestCase("5")`` is
+executed. Then the sequence ends.
 
 .. code-block:: python
 
@@ -84,39 +86,39 @@ The output is:
    Description:
    None
    Hello!
-   
+
    my_testcase_1: PASSED in 0m 0s
    ---------------------------------------------------------------
    Name: my_testcase_2
    Description:
    None
    Hello!
-   
+
    my_testcase_2: PASSED in 0m 0s
    ---------------------------------------------------------------
    Name: my_testcase_3
    Description:
    None
    Hello!
-   
+
    my_testcase_3: PASSED in 0m 0s
    ---------------------------------------------------------------
    Name: my_testcase_4
    Description:
    None
    Hello!
-   
+
    my_testcase_4: PASSED in 0m 0s
    ---------------------------------------------------------------
    Name: my_testcase_5
    Description:
    None
    Hello!
-   
+
    my_testcase_5: PASSED in 0m 0s
-   
+
    ---------------------- Test summary begin ----------------------
-   
+
    [
        [
            my_testcase_1: PASSED,
@@ -130,9 +132,9 @@ The output is:
            my_testcase_5: PASSED
        ]
    ]
-   
+
    Execution time: 0m 0s
-   
+
    ----------------------- Test summary end -----------------------
 
 .. |buildstatus| image:: https://travis-ci.org/eerimoq/systest.svg
