@@ -1,4 +1,6 @@
-# create release and upload to pypi
+test:
+	python2 setup.py test
+	python3 setup.py test
 
 all:
 	python setup.py sdist

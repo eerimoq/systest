@@ -6,6 +6,8 @@ from systest import Sequencer
 
 from tests.testcases.named import NamedTest
 from tests.testcases.fail import FailTest
+from tests.testcases.fail import FailSetupTest
+from tests.testcases.fail import FailTearDownTest
 from tests.testcases.notexecuted import NotExecutedTest
 
 
@@ -262,6 +264,24 @@ class SysTestTest(unittest.TestCase):
         self.assertEqual(NamedTest.count, 1)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 1)
+
+    def test_setup_teardown(self):
+        """Test the setup and teardown methods.
+
+        """
+
+        sequencer = Sequencer("setup_teardown")
+
+        result = sequencer.run(
+            FailSetupTest("1"),
+            FailTearDownTest("1")
+        )
+
+        sequencer.report()
+
+        self.assertEqual(result, (0, 2, 0))
+        self.assertEqual(FailSetupTest.count, 1)
+        self.assertEqual(FailTearDownTest.count, 1)
 
 
 systest.configure_logging()

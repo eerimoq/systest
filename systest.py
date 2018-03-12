@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.3.0'
+__version__ = '3.4.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -135,6 +135,20 @@ class TestCase(object):
         self.finish_time = None
         self.parents = []
         self.start_parent = None
+
+    def setup(self):
+        """Called before run().
+
+        """
+
+        pass
+
+    def teardown(self):
+        """Called after run().
+
+        """
+
+        pass
 
     def run(self):
         """The test case logic. This function is called be the sequencer to
@@ -647,19 +661,30 @@ class _TestThread(threading.Thread):
         try:
             result = TestCase.FAILED
 
-            # run the test
+            # Run the test.
             if self.sequencer.dry_run:
                 start_time = None
                 execution_time = test.dry_run()
             else:
                 start_time = time.time()
+
                 try:
                     if self.sequencer.is_testcase_enabled(test):
                         if self.sequencer.continue_on_failure:
-                            test.run()
+                            test.setup()
+
+                            try:
+                                test.run()
+                            finally:
+                                test.teardown()
                         else:
                             if not self.sequencer.run_failed:
-                                test.run()
+                                test.setup()
+
+                                try:
+                                    test.run()
+                                finally:
+                                    test.teardown()
                             else:
                                 raise SequencerTestSkippedError('Testcase skipped by failure.')
                     else:

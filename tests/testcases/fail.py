@@ -16,3 +16,36 @@ class FailTest(TestCase):
         FailTest.count += 1
 
         self.assert_equal(1, 0)
+
+
+class FailSetupTest(TestCase):
+    """A test that always fails the setup.
+
+    """
+
+    count = 0
+
+    def __init__(self, name):
+        super(FailSetupTest, self).__init__()
+        self.name = "fail_setup_" + name
+
+    def setup(self):
+        FailSetupTest.count += 1
+        self.assert_equal(1, 0)
+
+
+class FailTearDownTest(TestCase):
+    """A test that always fails in teardown.
+
+    """
+
+    count = 0
+
+    def __init__(self, name):
+        super(FailTearDownTest, self).__init__()
+        self.name = "fail_teardown_" + name
+
+    def teardown(self):
+        FailTearDownTest.count += 1
+
+        self.assert_equal(1, 0)

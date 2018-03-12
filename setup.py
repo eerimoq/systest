@@ -3,6 +3,7 @@
 from setuptools import setup
 import systest
 
+
 if __name__ == "__main__":
     setup(name='systest',
           version=systest.__version__,
