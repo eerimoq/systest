@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.4.0'
+__version__ = '3.5.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -92,6 +92,38 @@ def log_lines(text):
     for line in text.splitlines():
         LOGGER.info(line)
 
+
+def trim_docstring(docstring):
+    if not docstring:
+        return ''
+
+    # Remove leading and trailing whitespaces.
+    docstring = docstring.strip()
+
+    # Convert tabs to spaces (following the normal Python rules) and
+    # split into a list of lines:
+    lines = docstring.expandtabs().splitlines()
+
+    # Determine minimum indentation (first line doesn't count):
+    indent = None
+
+    for line in lines[1:]:
+        stripped = line.lstrip()
+
+        if stripped:
+            if indent is None:
+                indent = len(line) - len(stripped)
+            else:
+                indent = min(indent, len(line) - len(stripped))
+
+    # Remove indentation (first line is special):
+    trimmed = [lines[0].strip()]
+
+    if indent is not None:
+        for line in lines[1:]:
+            trimmed.append(line[indent:].rstrip())
+
+    return '\n'.join(trimmed)
 
 class ColorFormatter(logging.Formatter):
     """Adds color to the log entries.
@@ -404,7 +436,7 @@ class Sequencer(object):
 
             return {
                 'name': test.name,
-                'description': test.__doc__.splitlines(),
+                'description': trim_docstring(test.__doc__).splitlines(),
                 'result': result,
                 'execution_time': execution_time
             }
@@ -569,22 +601,15 @@ class Sequencer(object):
         return _DIGRAPH_FMT.format(name=_make_filename(self.name),
                                    deps='\n'.join([str(dep) for dep in deps]))
 
-    def report(self):
-        """Print a summary and create a dot graph image.
-
-        """
-
-        log_lines(self.summary())
-
-
-        filename = _make_filename(self.name)
-        filename_json = filename + ".json"
+    def _report_json(self, basename):
+        filename_json = basename + ".json"
 
         with open(filename_json, 'w') as fout:
             fout.write(json.dumps(self.summary_json(), indent=4))
 
-        filename_dot = filename + ".dot"
-        filename_png = filename + ".png"
+    def _report_dot(self, basename):
+        filename_dot = basename + ".dot"
+        filename_png = basename + ".png"
 
         with open(filename_dot, "w") as fout:
             fout.write(self.dot_digraph())
@@ -598,6 +623,18 @@ class Sequencer(object):
         except OSError:
             print(("Unable to create image from dot file '{}'. Program 'dot' is not "
                    "installed.").format(filename_dot))
+
+    def report(self):
+        """Print a summary and create a dot graph image.
+
+        """
+
+        log_lines(self.summary())
+
+        basename = _make_filename(self.name)
+
+        self._report_json(basename)
+        self._report_dot(basename)
 
 
 def _make_filename(text):
@@ -654,7 +691,7 @@ class _TestThread(threading.Thread):
 
     def run_test(self, test):
         log_lines(_TEST_HEADER_FMT.format(name=test.name,
-                                          description=test.__doc__))
+                                          description=trim_docstring(test.__doc__)))
 
         test.sequencer = self.sequencer
 
