@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.5.0'
+__version__ = '3.6.0'
 
 
 _RUN_HEADER_FMT ="""
