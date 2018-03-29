@@ -8,6 +8,9 @@ from tests.testcases.named import NamedTest
 from tests.testcases.fail import FailTest
 from tests.testcases.fail import FailSetupTest
 from tests.testcases.fail import FailTearDownTest
+from tests.testcases.fail import FailAssertRaisesNoExceptionTest
+from tests.testcases.fail import FailAssertRaisesWrongExceptionTest
+from tests.testcases.fail import FailAssertIsNoneTest
 from tests.testcases.notexecuted import NotExecutedTest
 
 
@@ -282,6 +285,23 @@ class SysTestTest(unittest.TestCase):
         self.assertEqual(result, (0, 2, 0))
         self.assertEqual(FailSetupTest.count, 1)
         self.assertEqual(FailTearDownTest.count, 1)
+
+    def test_asserts(self):
+        """Test the various asserts.
+
+        """
+
+        sequencer = Sequencer("asserts")
+
+        result = sequencer.run(
+            FailAssertRaisesNoExceptionTest(),
+            FailAssertRaisesWrongExceptionTest(),
+            FailAssertIsNoneTest()
+        )
+
+        sequencer.report()
+
+        self.assertEqual(result, (0, 3, 0))
 
 
 systest.configure_logging()

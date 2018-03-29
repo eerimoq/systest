@@ -208,12 +208,12 @@ class TestCase(object):
 
         if first != second:
             filename, line, _, _ = traceback.extract_stack()[-2]
-            LOGGER.error('%s:%d: Assertion error: %s != %s',
-                         filename,
-                         line,
-                         first,
-                         second)
-            raise SequencerTestFailedError()
+
+            raise SequencerTestFailedError(
+                '{}:{}: Assertion error: {} != {}'.format(filename,
+                                                          line,
+                                                          repr(first),
+                                                          repr(second)))
 
     def assert_true(self, condition):
         """Raise an exception if given condition `condition` is false.
@@ -221,9 +221,40 @@ class TestCase(object):
         """
 
         if not condition:
-            filename, line, _, code = traceback.extract_stack()[-2]
-            LOGGER.error('%s:%d: %s', filename, line, code)
-            raise SequencerTestFailedError()
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError('{}:{}: {} is not True'.format(filename,
+                                                                          line,
+                                                                          condition))
+
+    def assert_in(self, member, container):
+        """Raise an exception if given member `member` is not found in given
+        container `container`.
+
+        """
+
+        if member not in container:
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError(
+                '{}:{}: {} not found in {}'.format(filename,
+                                                   line,
+                                                   repr(member),
+                                                   repr(container)))
+
+    def assert_is_none(self, obj):
+        """Raise an exception if given member `member` is not found in given
+        container `container`.
+
+        """
+
+        if obj is not None:
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError(
+                '{}:{}: {} is not None'.format(filename,
+                                               line,
+                                               repr(obj)))
 
     def assert_raises(self, expected_type, expected_message=None):
         """Raise an exception if no exception of given type `exception_type`
@@ -243,9 +274,12 @@ class TestCase(object):
 
             def __exit__(self, exception_type, exception_value, tb):
                 if exception_type is None:
-                    filename, line, _, code = traceback.extract_stack()[-2]
-                    LOGGER.error('%s:%d: %s', filename, line, code)
-                    raise SequencerTestFailedError()
+                    filename, line, _, _ = traceback.extract_stack()[-2]
+
+                    raise SequencerTestFailedError(
+                        '{}:{}: {} not raised'.format(filename,
+                                                      line,
+                                                      self.expected_type.__name__))
                 elif exception_type == self.expected_type:
                     # Python 2 and 3 compatibility.
                     try:
@@ -795,7 +829,8 @@ class _TestThread(threading.Thread):
         # raise an exception if at least one test failed
         for child in children:
             if child.result == TestCase.FAILED:
-                raise SequencerTestFailedError("At least one of the parallel testcases failed.")
+                raise SequencerTestFailedError(
+                    "At least one of the parallel testcases failed.")
 
     def run_tests(self, tests):
         """Run the test(s).
