@@ -98,7 +98,8 @@ The output is:
 
    Name: my_testcase_1
    Description:
-   Test case description.
+
+       Test case description.
 
    Hello!
 
@@ -108,7 +109,8 @@ The output is:
 
    Name: my_testcase_2
    Description:
-   Test case description.
+
+       Test case description.
 
    Hello!
 
@@ -118,7 +120,8 @@ The output is:
 
    Name: my_testcase_3
    Description:
-   Test case description.
+
+       Test case description.
 
    Hello!
 
@@ -128,7 +131,8 @@ The output is:
 
    Name: my_testcase_4
    Description:
-   Test case description.
+
+       Test case description.
 
    Hello!
 
@@ -138,7 +142,8 @@ The output is:
 
    Name: my_testcase_5
    Description:
-   Test case description.
+
+       Test case description.
 
    Hello!
 
