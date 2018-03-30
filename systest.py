@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.6.0'
+__version__ = '3.7.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -39,6 +39,7 @@ _SUMMARY_FMT = """
 {summary}
 
 Execution time: {execution_time}
+Result: {result}
 
 ----------------------- Test summary end -----------------------
 """
@@ -452,8 +453,16 @@ class Sequencer(object):
 
         summary = '\n'.join(recursivly(self.tests, 0))
 
+        number_of_failed_tets = self.summary_count()[1]
+
+        if number_of_failed_tets > 0:
+            result = TestCase.FAILED
+        else:
+            result = TestCase.PASSED
+
         return _SUMMARY_FMT.format(summary=summary,
-                                   execution_time=_human_time(self.execution_time))
+                                   execution_time=_human_time(self.execution_time),
+                                   result=result)
 
     def summary_json(self):
         """Compile the test execution summary and return it as a JSON object.
