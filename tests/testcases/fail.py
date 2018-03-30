@@ -75,9 +75,9 @@ class FailAssertRaisesWrongExceptionTest(TestCase):
 
 
 class FailAssertIsNoneTest(TestCase):
-    """A test that fails in an assert_is_none().
+    """A test that fails in an assert_none().
 
     """
 
     def run(self):
-        self.assert_is_none(0)
+        self.assert_none(0)
