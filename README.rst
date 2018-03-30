@@ -16,7 +16,7 @@ Test cases in a list are executed in serial and test cases in a tuple
 are executed in parallel, in separate Python threads.
 
 This framework is created with integration/system test in mind. The
-framework is *not* indended as a replacement for ``unittest``, but
+framework is *not* intended as a replacement for ``unittest``, but
 rather to be a complement to it.
 
 Documentation: http://systest.readthedocs.org/en/latest
@@ -44,6 +44,9 @@ executed. Then the sequence ends.
 
    # Define a testcase.
    class MyTestCase(TestCase):
+       """Test case description.
+
+       """
 
        def __init__(self, name):
            super(MyTestCase, self).__init__()
@@ -51,6 +54,15 @@ executed. Then the sequence ends.
 
        def run(self):
            LOGGER.info("Hello!")
+           self.assert_equal(1, 1)
+           self.assert_true(1 == 1)
+           self.assert_in(1 in [1, 2])
+           self.assert_none(None)
+
+           with self.assert_raises(RuntimeError) as cm:
+               raise RuntimeError('foo')
+
+           self.assert_equal(str(cm.exception), 'foo')
 
    # Configure the logging module.
    configure_logging()
@@ -81,38 +93,53 @@ The output is:
    Date: 2016-02-02 18:42:40.446213
    Node: erik-VirtualBox
    User: erik
+
    ---------------------------------------------------------------
+
    Name: my_testcase_1
    Description:
-   None
+   Test case description.
+
    Hello!
 
    my_testcase_1: PASSED in 0m 0s
+
    ---------------------------------------------------------------
+
    Name: my_testcase_2
    Description:
-   None
+   Test case description.
+
    Hello!
 
    my_testcase_2: PASSED in 0m 0s
+
    ---------------------------------------------------------------
+
    Name: my_testcase_3
    Description:
-   None
+   Test case description.
+
    Hello!
 
    my_testcase_3: PASSED in 0m 0s
+
    ---------------------------------------------------------------
+
    Name: my_testcase_4
    Description:
-   None
+   Test case description.
+
    Hello!
 
    my_testcase_4: PASSED in 0m 0s
+
    ---------------------------------------------------------------
+
    Name: my_testcase_5
    Description:
-   None
+   Test case description.
+
    Hello!
 
    my_testcase_5: PASSED in 0m 0s
@@ -134,6 +161,7 @@ The output is:
    ]
 
    Execution time: 0m 0s
+   Result: PASSED
 
    ----------------------- Test summary end -----------------------
 

@@ -22,16 +22,21 @@ _RUN_HEADER_FMT ="""
 Name: {name}
 Date: {date}
 Node: {node}
-User: {user}"""
+User: {user}\
+"""
 
 _TEST_HEADER_FMT = """
 ---------------------------------------------------------------
+
 Name: {name}
 Description:
-{description}"""
+{description}
+
+"""
 
 _TEST_FOOTER_FMT = """
-{name}: {result} in {duration}"""
+{name}: {result} in {duration}\
+"""
 
 _SUMMARY_FMT = """
 ---------------------- Test summary begin ----------------------
@@ -44,7 +49,8 @@ Result: {result}
 ----------------------- Test summary end -----------------------
 """
 
-_DIGRAPH_FMT = """digraph {name} {{
+_DIGRAPH_FMT = """\
+digraph {name} {{
     begin [shape=box];
     end [shape=box];
 
@@ -243,9 +249,8 @@ class TestCase(object):
                                                    repr(member),
                                                    repr(container)))
 
-    def assert_is_none(self, obj):
-        """Raise an exception if given member `member` is not found in given
-        container `container`.
+    def assert_none(self, obj):
+        """Raise an exception if given object `obj` is not None.
 
         """
 
