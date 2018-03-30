@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.7.0'
+__version__ = '3.8.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -30,6 +30,7 @@ _TEST_HEADER_FMT = """
 
 Name: {name}
 Description:
+
 {description}
 
 """
@@ -738,8 +739,12 @@ class _TestThread(threading.Thread):
             pass
 
     def run_test(self, test):
+        docstring = trim_docstring(test.__doc__)
+        description_lines = ['    ' + line for line in docstring.splitlines()]
+        description = '\n'.join(description_lines)
+
         log_lines(_TEST_HEADER_FMT.format(name=test.name,
-                                          description=trim_docstring(test.__doc__)))
+                                          description=description))
 
         test.sequencer = self.sequencer
 
