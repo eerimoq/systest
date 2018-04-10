@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.8.0'
+__version__ = '3.8.1'
 
 
 _RUN_HEADER_FMT ="""
@@ -102,7 +102,7 @@ def log_lines(text):
 
 
 def trim_docstring(docstring):
-    if not docstring:
+    if docstring is None or not docstring.strip():
         return ''
 
     # Remove leading and trailing whitespaces.

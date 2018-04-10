@@ -12,6 +12,9 @@ from tests.testcases.fail import FailAssertRaisesNoExceptionTest
 from tests.testcases.fail import FailAssertRaisesWrongExceptionTest
 from tests.testcases.fail import FailAssertIsNoneTest
 from tests.testcases.notexecuted import NotExecutedTest
+from tests.testcases.description import DescriptionNoneTest
+from tests.testcases.description import DescriptionEmptyTest
+from tests.testcases.description import DescriptionBlankTest
 
 
 class SysTestTest(unittest.TestCase):
@@ -302,6 +305,23 @@ class SysTestTest(unittest.TestCase):
         sequencer.report()
 
         self.assertEqual(result, (0, 3, 0))
+
+    def test_testcase_description(self):
+        """Test the testcase descriptions.
+
+        """
+
+        sequencer = Sequencer("testcase descriptions")
+
+        result = sequencer.run(
+            DescriptionNoneTest(),
+            DescriptionEmptyTest(),
+            DescriptionBlankTest()
+        )
+
+        sequencer.report()
+
+        self.assertEqual(result, (3, 0, 0))
 
 
 systest.configure_logging()
