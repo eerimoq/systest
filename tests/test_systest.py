@@ -15,6 +15,7 @@ from tests.testcases.notexecuted import NotExecutedTest
 from tests.testcases.description import DescriptionNoneTest
 from tests.testcases.description import DescriptionEmptyTest
 from tests.testcases.description import DescriptionBlankTest
+from tests.testcases.description import DescriptionMultiLineTest
 
 
 class SysTestTest(unittest.TestCase):
@@ -316,12 +317,24 @@ class SysTestTest(unittest.TestCase):
         result = sequencer.run(
             DescriptionNoneTest(),
             DescriptionEmptyTest(),
-            DescriptionBlankTest()
+            DescriptionBlankTest(),
+            DescriptionMultiLineTest()
         )
 
         sequencer.report()
 
-        self.assertEqual(result, (3, 0, 0))
+        self.assertEqual(result, (4, 0, 0))
+
+        json_report = sequencer.summary_json()
+        self.assertEqual(json_report["testcases"][0]['description'], [])
+        self.assertEqual(json_report["testcases"][1]['description'], [])
+        self.assertEqual(json_report["testcases"][2]['description'], [])
+        self.assertEqual(json_report["testcases"][3]['description'],
+                         [
+                             'Line 1.',
+                             'Line 2.',
+                             'Line 3.'
+                         ])
 
 
 systest.configure_logging()
