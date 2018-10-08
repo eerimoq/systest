@@ -336,6 +336,35 @@ class SysTestTest(unittest.TestCase):
                              'Line 3.'
                          ])
 
+    def test_execute_test_twice_two_run(self):
+        """Execute the same test twice in two separate calls to run. This
+        tests that a DOT graph can be created if multiple tests have
+        the same name.
+
+        """
+
+        sequencer = Sequencer("execute_test_twice")
+
+        result = sequencer.run([
+            NamedTest("1"),
+            NamedTest("1")
+        ])
+
+        self.assertEqual(result, (2, 0, 0))
+
+        result = sequencer.run([
+            NamedTest("1"),
+            NamedTest("1")
+        ])
+
+        self.assertEqual(result, (4, 0, 0))
+
+        sequencer.report()
+
+        self.assertEqual(NamedTest.count, 4)
+        self.assertEqual(NotExecutedTest.count, 0)
+        self.assertEqual(FailTest.count, 0)
+
 
 systest.configure_logging()
 

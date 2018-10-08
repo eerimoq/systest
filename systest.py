@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.8.1'
+__version__ = '3.8.2'
 
 
 _RUN_HEADER_FMT ="""
@@ -52,8 +52,10 @@ Result: {result}
 
 _DIGRAPH_FMT = """\
 digraph {name} {{
-    begin [shape=box];
-    end [shape=box];
+    {begin_id} [label="begin" shape=box];
+    {end_id} [label="end" shape=box];
+
+{nodes}
 
 {deps}
 }}
@@ -577,15 +579,15 @@ class Sequencer(object):
                 self.style = style
 
             def __str__(self):
-                return ('    "{parent_name}" -> "{name}" [label="{parent_finish_time}"'
+                return ('    {parent_id} -> {test_id} [label="{parent_finish_time}"'
                         ', style="{style}"];').format(
-                            parent_name=self.parent.name,
-                            name=self.test.name,
+                            parent_id=id(self.parent),
+                            test_id=id(self.test),
                             parent_finish_time=_human_time(self.parent.finish_time),
                             style=self.style)
 
         def edge_name(parent, test):
-            return parent.name + " -> " + test.name
+            return '{}  ->  {}'.format(id(parent), id(test))
 
         def edges_recursivly(edges, test, style):
             # Take the slowest path first.
@@ -622,6 +624,25 @@ class Sequencer(object):
             else:
                 raise ValueError("bad type: {}".format(type(tests)))
 
+        def nodes_test(test):
+            return ['    {} [label="{}"]'.format(id(test), test.name)]
+
+        def nodes_sequential_tests(tests):
+            return _flatten([nodes_recursivly(test) for test in tests])
+
+        def nodes_parallel_tests(tests):
+            return _flatten([nodes_recursivly(test) for test in tests])
+
+        def nodes_recursivly(tests):
+            if isinstance(tests, TestCase):
+                return nodes_test(tests)
+            elif isinstance(tests, list):
+                return nodes_sequential_tests(tests)
+            elif isinstance(tests, tuple):
+                return nodes_parallel_tests(tests)
+            else:
+                raise ValueError("bad type: {}".format(type(tests)))
+
         # Create the begin test case node.
         begin = TestCase("begin")
         begin.result = TestCase.PASSED
@@ -647,8 +668,16 @@ class Sequencer(object):
         for test in [begin] + self.tests + [end]:
             deps += deps_recursivly(edges, test)
 
+        nodes = []
+
+        for test in self.tests:
+            nodes += nodes_recursivly(test)
+
         return _DIGRAPH_FMT.format(name=_make_filename(self.name),
-                                   deps='\n'.join([str(dep) for dep in deps]))
+                                   begin_id=id(begin),
+                                   end_id=id(end),
+                                   nodes='\n'.join(nodes),
+                                   deps='\n'.join(deps))
 
     def _report_json(self, basename):
         filename_json = basename + ".json"
