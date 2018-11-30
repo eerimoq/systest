@@ -50,34 +50,3 @@ class FailTearDownTest(TestCase):
         FailTearDownTest.count += 1
 
         self.assert_true(1 == 0)
-
-
-class FailAssertRaisesNoExceptionTest(TestCase):
-    """A test that fails in an assert_raises() because no exception is
-    raised.
-
-    """
-
-    def run(self):
-        with self.assert_raises(ValueError):
-            pass
-
-
-class FailAssertRaisesWrongExceptionTest(TestCase):
-    """A test that fails in an assert_raises() with the wrong exception is
-    raised.
-
-    """
-
-    def run(self):
-        with self.assert_raises(ValueError):
-            raise TypeError('This is not a value error.')
-
-
-class FailAssertIsNoneTest(TestCase):
-    """A test that fails in an assert_none().
-
-    """
-
-    def run(self):
-        self.assert_none(0)

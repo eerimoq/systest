@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.8.2'
+__version__ = '3.9.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -220,10 +220,24 @@ class TestCase(object):
             filename, line, _, _ = traceback.extract_stack()[-2]
 
             raise SequencerTestFailedError(
-                '{}:{}: Assertion error: {} != {}'.format(filename,
-                                                          line,
-                                                          repr(first),
-                                                          repr(second)))
+                '{}:{}: {} is not equal to {}'.format(filename,
+                                                      line,
+                                                      repr(first),
+                                                      repr(second)))
+
+    def assert_not_equal(self, first, second):
+        """Raise an exception if ``first`` and ``second`` are equal.
+
+        """
+
+        if first == second:
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError(
+                '{}:{}: {} is equal to {}'.format(filename,
+                                                  line,
+                                                  repr(first),
+                                                  repr(second)))
 
     def assert_true(self, condition):
         """Raise an exception if given condition `condition` is false.
@@ -233,9 +247,21 @@ class TestCase(object):
         if not condition:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError('{}:{}: {} is not True'.format(filename,
+            raise SequencerTestFailedError('{}:{}: {} is not true'.format(filename,
                                                                           line,
                                                                           condition))
+
+    def assert_false(self, condition):
+        """Raise an exception if given condition `condition` is true.
+
+        """
+
+        if condition:
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError('{}:{}: {} is not false'.format(filename,
+                                                                           line,
+                                                                           condition))
 
     def assert_in(self, member, container):
         """Raise an exception if given member `member` is not found in given
@@ -252,7 +278,22 @@ class TestCase(object):
                                                    repr(member),
                                                    repr(container)))
 
-    def assert_none(self, obj):
+    def assert_not_in(self, member, container):
+        """Raise an exception if given member `member` is found in given
+        container `container`.
+
+        """
+
+        if member in container:
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError(
+                '{}:{}: {} found in {}'.format(filename,
+                                               line,
+                                               repr(member),
+                                               repr(container)))
+
+    def assert_is_none(self, obj):
         """Raise an exception if given object `obj` is not None.
 
         """
@@ -264,6 +305,77 @@ class TestCase(object):
                 '{}:{}: {} is not None'.format(filename,
                                                line,
                                                repr(obj)))
+
+    def assert_is_not_none(self, obj):
+        """Raise an exception if given object `obj` is None.
+
+        """
+
+        if obj is None:
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError(
+                '{}:{}: {} is None'.format(filename,
+                                           line,
+                                           repr(obj)))
+
+    def assert_greater(self, first, second):
+        """Raise an exception if ``first`` is not greater than ``second``.
+
+        """
+
+        if first <= second:
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError(
+                '{}:{}: {} is not greater than {}'.format(filename,
+                                                          line,
+                                                          repr(first),
+                                                          repr(second)))
+
+    def assert_greater_equal(self, first, second):
+        """Raise an exception if ``first`` is not greater than or equal to
+        ``second``.
+
+        """
+
+        if first < second:
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError(
+                '{}:{}: {} is not greater than or equal to {}'.format(filename,
+                                                                      line,
+                                                                      repr(first),
+                                                                      repr(second)))
+
+    def assert_less(self, first, second):
+        """Raise an exception if ``first`` is not less than ``second``.
+
+        """
+
+        if first >= second:
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError(
+                '{}:{}: {} is not less than {}'.format(filename,
+                                                       line,
+                                                       repr(first),
+                                                       repr(second)))
+
+    def assert_less_equal(self, first, second):
+        """Raise an exception if ``first`` is not less than or equal to
+        ``second``.
+
+        """
+
+        if first > second:
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError(
+                '{}:{}: {} is not less than or equal to {}'.format(filename,
+                                                                   line,
+                                                                   repr(first),
+                                                                   repr(second)))
 
     def assert_raises(self, expected_type, expected_message=None):
         """Raise an exception if no exception of given type `exception_type`
@@ -300,6 +412,19 @@ class TestCase(object):
                         return True
 
         return AssertRaises(expected_type, expected_message)
+
+    def assert_none(self, obj):
+        """Raise an exception if given object `obj` is not None.
+
+        """
+
+        if obj is not None:
+            filename, line, _, _ = traceback.extract_stack()[-2]
+
+            raise SequencerTestFailedError(
+                '{}:{}: {} is not None'.format(filename,
+                                               line,
+                                               repr(obj)))
 
 
 class Sequencer(object):

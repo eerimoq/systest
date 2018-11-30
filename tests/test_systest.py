@@ -3,14 +3,27 @@ import json
 
 import systest
 from systest import Sequencer
+from systest import SequencerTestFailedError
 
 from tests.testcases.named import NamedTest
 from tests.testcases.fail import FailTest
 from tests.testcases.fail import FailSetupTest
 from tests.testcases.fail import FailTearDownTest
-from tests.testcases.fail import FailAssertRaisesNoExceptionTest
-from tests.testcases.fail import FailAssertRaisesWrongExceptionTest
-from tests.testcases.fail import FailAssertIsNoneTest
+from tests.testcases.asserts import AssertsEqualTest
+from tests.testcases.asserts import AssertsNotEqualTest
+from tests.testcases.asserts import AssertsTrueTest
+from tests.testcases.asserts import AssertsFalseTest
+from tests.testcases.asserts import AssertsInTest
+from tests.testcases.asserts import AssertsNotInTest
+from tests.testcases.asserts import AssertsIsNoneTest
+from tests.testcases.asserts import AssertsIsNotNoneTest
+from tests.testcases.asserts import AssertsGreaterTest
+from tests.testcases.asserts import AssertsGreaterEqualTest
+from tests.testcases.asserts import AssertsLessTest
+from tests.testcases.asserts import AssertsLessEqualTest
+from tests.testcases.asserts import AssertsRaisesNoExceptionTest
+from tests.testcases.asserts import AssertsRaisesWrongExceptionTest
+from tests.testcases.asserts import AssertsNoneTest
 from tests.testcases.notexecuted import NotExecutedTest
 from tests.testcases.description import DescriptionNoneTest
 from tests.testcases.description import DescriptionEmptyTest
@@ -290,22 +303,140 @@ class SysTestTest(unittest.TestCase):
         self.assertEqual(FailSetupTest.count, 1)
         self.assertEqual(FailTearDownTest.count, 1)
 
-    def test_asserts(self):
+    def test_failed_asserts(self):
         """Test the various asserts.
 
         """
 
-        sequencer = Sequencer("asserts")
+        sequencer = Sequencer("failed_asserts")
 
         result = sequencer.run(
-            FailAssertRaisesNoExceptionTest(),
-            FailAssertRaisesWrongExceptionTest(),
-            FailAssertIsNoneTest()
+            AssertsEqualTest(1, 2),
+            AssertsNotEqualTest(2, 2),
+            AssertsTrueTest(False),
+            AssertsFalseTest(True),
+            AssertsInTest(1, [0, 2]),
+            AssertsNotInTest(1, [0, 1, 2]),
+            AssertsIsNoneTest(0),
+            AssertsIsNotNoneTest(None),
+            AssertsGreaterTest(2, 2),
+            AssertsGreaterEqualTest(1, 2),
+            AssertsLessTest(2, 2),
+            AssertsLessEqualTest(2, 1),
+            AssertsRaisesNoExceptionTest(),
+            AssertsRaisesWrongExceptionTest(),
+            AssertsNoneTest(0)
         )
 
         sequencer.report()
 
-        self.assertEqual(result, (0, 3, 0))
+        self.assertEqual(result, (0, 15, 0))
+
+        # Failure messages.
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsEqualTest(1, 2).run()
+
+        self.assertTrue(str(cm.exception).endswith(': 1 is not equal to 2'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsNotEqualTest(2, 2).run()
+
+        self.assertTrue(str(cm.exception).endswith(': 2 is equal to 2'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsTrueTest(False).run()
+
+        self.assertTrue(str(cm.exception).endswith(': False is not true'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsFalseTest(True).run()
+
+        self.assertTrue(str(cm.exception).endswith(': True is not false'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsInTest(1, [0, 2]).run()
+
+        self.assertTrue(str(cm.exception).endswith(': 1 not found in [0, 2]'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsNotInTest(1, [0, 1, 2]).run()
+
+        self.assertTrue(str(cm.exception).endswith(': 1 found in [0, 1, 2]'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsIsNoneTest(0).run()
+
+        self.assertTrue(str(cm.exception).endswith(': 0 is not None'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsIsNotNoneTest(None).run()
+
+        self.assertTrue(str(cm.exception).endswith(': None is None'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsGreaterTest(2, 2).run()
+
+        self.assertTrue(str(cm.exception).endswith(': 2 is not greater than 2'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsGreaterEqualTest(1, 2).run()
+
+        self.assertTrue(str(cm.exception).endswith(': 1 is not greater than or equal to 2'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsLessTest(2, 2).run()
+
+        self.assertTrue(str(cm.exception).endswith(': 2 is not less than 2'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsLessEqualTest(2, 1).run()
+
+        self.assertTrue(str(cm.exception).endswith(': 2 is not less than or equal to 1'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsRaisesNoExceptionTest().run()
+
+        self.assertTrue(str(cm.exception).endswith(': ValueError not raised'))
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsNoneTest(0).run()
+        print(str(cm.exception))
+
+        self.assertTrue(str(cm.exception).endswith(': 0 is not None'))
+
+    def test_passed_asserts(self):
+        """Test the various asserts.
+
+        """
+
+        sequencer = Sequencer("passed_asserts")
+
+        result = sequencer.run(
+            AssertsEqualTest(1, 1),
+            AssertsNotEqualTest(2, 1),
+            AssertsTrueTest(True),
+            AssertsTrueTest(1),
+            AssertsTrueTest([1]),
+            AssertsFalseTest(False),
+            AssertsFalseTest(0),
+            AssertsFalseTest([]),
+            AssertsInTest(1, [0, 1, 2]),
+            AssertsNotInTest(1, [0, 2]),
+            AssertsIsNoneTest(None),
+            AssertsIsNotNoneTest(0),
+            AssertsGreaterTest(2, 1),
+            AssertsGreaterEqualTest(2, 2),
+            AssertsGreaterEqualTest(2, 1),
+            AssertsLessTest(1, 2),
+            AssertsLessEqualTest(1, 2),
+            AssertsLessEqualTest(2, 2),
+            AssertsNoneTest(None)
+        )
+
+        sequencer.report()
+
+        self.assertEqual(result, (19, 0, 0))
+
 
     def test_testcase_description(self):
         """Test the testcase descriptions.
