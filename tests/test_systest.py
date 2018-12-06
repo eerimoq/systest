@@ -6,6 +6,7 @@ from systest import Sequencer
 from systest import SequencerTestFailedError
 
 from tests.testcases.named import NamedTest
+from tests.testcases.skip import SkipTest
 from tests.testcases.fail import FailTest
 from tests.testcases.fail import FailSetupTest
 from tests.testcases.fail import FailTearDownTest
@@ -495,6 +496,31 @@ class SysTestTest(unittest.TestCase):
         self.assertEqual(NamedTest.count, 4)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 0)
+
+    def test_skipped_and_failed_summary_messages(self):
+        """Verify the skipped and failed messages in the summary.
+
+        """
+
+        sequencer = Sequencer("execute_test_skipped_and_failed_summary_messages")
+
+        result = sequencer.run([
+            SkipTest("1", 'My skip message.'),
+            FailTest("1")
+        ])
+
+        self.assertEqual(result, (0, 1, 1))
+
+        sequencer.report()
+
+        json_report = sequencer.summary_json()
+        self.assertEqual(json_report["testcases"][0]['name'], 'skip_1')
+        self.assertEqual(json_report["testcases"][0]['result'], 'SKIPPED')
+        self.assertEqual(json_report["testcases"][0]['message'], 'My skip message.')
+        self.assertEqual(json_report["testcases"][1]['name'], 'fail_1')
+        self.assertEqual(json_report["testcases"][1]['result'], 'FAILED')
+        self.assertTrue(
+            json_report["testcases"][1]['message'].endswith('1 is not equal to 0'))
 
 
 systest.configure_logging()

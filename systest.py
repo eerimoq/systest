@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.9.0'
+__version__ = '3.10.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -172,6 +172,7 @@ class TestCase(object):
         else:
             self.name = type(self).__name__
         self.result = None
+        self.message = None
         self.sequencer = None
         self.execution_time = None
         self.finish_time = None
@@ -553,14 +554,19 @@ class Sequencer(object):
         """
 
         def test(test, indent):
-            fmt = ' ' * indent + test.name + ': {result}'
+            fmt = ' ' * indent + test.name + ': {result}{message}'
 
             if test.result:
                 result = test.result
             else:
                 result = TestCase.SKIPPED
 
-            return [fmt.format(result=result)]
+            if test.message is None:
+                message = ''
+            else:
+                message = ' ({})'.format(test.message)
+
+            return [fmt.format(result=result, message=message)]
 
         def sequential_tests(tests, indent):
             return ['\n'.join([' ' * indent + '[',
@@ -610,12 +616,17 @@ class Sequencer(object):
                 result = TestCase.SKIPPED
                 execution_time = None
 
-            return {
+            summary = {
                 'name': test.name,
                 'description': trim_docstring(test.__doc__).splitlines(),
                 'result': result,
                 'execution_time': execution_time
             }
+
+            if test.message is not None:
+                summary['message'] = test.message
+
+            return summary
 
         def sequential_tests(tests, testcases):
             return [recursivly(test, testcases) for test in tests]
@@ -901,11 +912,11 @@ class _TestThread(threading.Thread):
                                           description=description))
 
         test.sequencer = self.sequencer
+        result = TestCase.FAILED
+        message = None
 
+        # Run the test.
         try:
-            result = TestCase.FAILED
-
-            # Run the test.
             if self.sequencer.dry_run:
                 start_time = None
                 execution_time = test.dry_run()
@@ -936,14 +947,16 @@ class _TestThread(threading.Thread):
                 except SequencerTestSkippedError as e:
                     LOGGER.info("testcase skipped: %s", e)
                     result = TestCase.SKIPPED
+                    message = str(e)
                     raise
-                except:
+                except BaseException as e:
                     self.sequencer.run_failed = True
 
                     for entry in traceback.format_exception(*sys.exc_info()):
                         for line in entry.splitlines():
                             LOGGER.error(line.rstrip())
 
+                    message = str(e)
                     raise
 
             result = TestCase.PASSED
@@ -958,6 +971,7 @@ class _TestThread(threading.Thread):
                                               duration=_human_time(execution_time)))
 
             test.result = result
+            test.message = message
             test.execution_time = execution_time
             test.finish_time = finish_time
 
