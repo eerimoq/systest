@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '3.10.0'
+__version__ = '4.0.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -379,8 +379,8 @@ class TestCase(object):
                                                                    repr(second)))
 
     def assert_raises(self, expected_type, expected_message=None):
-        """Raise an exception if no exception of given type `exception_type`
-        is raised.
+        """Raise an exception if no exception of given type(s) or subclass of
+        given type(s) `expected_type` is raised.
 
         """
 
@@ -398,11 +398,17 @@ class TestCase(object):
                 if exception_type is None:
                     filename, line, _, _ = traceback.extract_stack()[-2]
 
+                    try:
+                        name = self.expected_type.__name__
+                    except AttributeError:
+                        name = ' or '.join([
+                            expected_type.__name__
+                            for expected_type in self.expected_type
+                        ])
+
                     raise SequencerTestFailedError(
-                        '{}:{}: {} not raised'.format(filename,
-                                                      line,
-                                                      self.expected_type.__name__))
-                elif exception_type == self.expected_type:
+                        '{}:{}: {} not raised'.format(filename, line, name))
+                elif issubclass(exception_type, self.expected_type):
                     # Python 2 and 3 compatibility.
                     try:
                         self.exception = exception_value.with_traceback(None)

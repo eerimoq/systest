@@ -136,11 +136,49 @@ class AssertsRaisesNoExceptionTest(TestCase):
             pass
 
 
+class AssertsRaisesNoExceptionTupleTest(TestCase):
+
+    def run(self):
+        with self.assert_raises((ValueError, TypeError)):
+            pass
+
+
 class AssertsRaisesWrongExceptionTest(TestCase):
 
     def run(self):
         with self.assert_raises(ValueError):
             raise TypeError('This is not a value error.')
+
+
+class AssertsRaisesSubclassExceptionTest(TestCase):
+
+    def run(self):
+        with self.assert_raises(Exception):
+            raise ValueError
+
+
+class AssertsRaisesWrongExceptionTupleTest(TestCase):
+
+    def run(self):
+        with self.assert_raises((ValueError, TypeError)):
+            raise IndexError('This is not a value error or type error.')
+
+
+class AssertsRaisesExceptionTest(TestCase):
+
+    def run(self):
+        with self.assert_raises(ValueError):
+            raise ValueError
+
+
+class AssertsRaisesExceptionTupleTest(TestCase):
+
+    def run(self):
+        with self.assert_raises((ValueError, TypeError)):
+            raise ValueError
+
+        with self.assert_raises((ValueError, TypeError)):
+            raise TypeError
 
 
 class AssertsNoneTest(TestCase):

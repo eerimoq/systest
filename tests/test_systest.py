@@ -23,7 +23,12 @@ from tests.testcases.asserts import AssertsGreaterEqualTest
 from tests.testcases.asserts import AssertsLessTest
 from tests.testcases.asserts import AssertsLessEqualTest
 from tests.testcases.asserts import AssertsRaisesNoExceptionTest
+from tests.testcases.asserts import AssertsRaisesNoExceptionTupleTest
 from tests.testcases.asserts import AssertsRaisesWrongExceptionTest
+from tests.testcases.asserts import AssertsRaisesWrongExceptionTupleTest
+from tests.testcases.asserts import AssertsRaisesSubclassExceptionTest
+from tests.testcases.asserts import AssertsRaisesExceptionTest
+from tests.testcases.asserts import AssertsRaisesExceptionTupleTest
 from tests.testcases.asserts import AssertsNoneTest
 from tests.testcases.notexecuted import NotExecutedTest
 from tests.testcases.description import DescriptionNoneTest
@@ -325,13 +330,15 @@ class SysTestTest(unittest.TestCase):
             AssertsLessTest(2, 2),
             AssertsLessEqualTest(2, 1),
             AssertsRaisesNoExceptionTest(),
+            AssertsRaisesNoExceptionTupleTest(),
             AssertsRaisesWrongExceptionTest(),
+            AssertsRaisesWrongExceptionTupleTest(),
             AssertsNoneTest(0)
         )
 
         sequencer.report()
 
-        self.assertEqual(result, (0, 15, 0))
+        self.assertEqual(result, (0, 17, 0))
 
         # Failure messages.
         with self.assertRaises(SequencerTestFailedError) as cm:
@@ -400,8 +407,22 @@ class SysTestTest(unittest.TestCase):
         self.assertTrue(str(cm.exception).endswith(': ValueError not raised'))
 
         with self.assertRaises(SequencerTestFailedError) as cm:
+            AssertsRaisesNoExceptionTupleTest().run()
+
+        self.assertTrue(str(cm.exception).endswith(': ValueError or TypeError not raised'))
+
+        with self.assertRaises(TypeError) as cm:
+            AssertsRaisesWrongExceptionTest().run()
+
+        self.assertEqual(str(cm.exception), 'This is not a value error.')
+
+        with self.assertRaises(IndexError) as cm:
+            AssertsRaisesWrongExceptionTupleTest().run()
+
+        self.assertEqual(str(cm.exception), 'This is not a value error or type error.')
+
+        with self.assertRaises(SequencerTestFailedError) as cm:
             AssertsNoneTest(0).run()
-        print(str(cm.exception))
 
         self.assertTrue(str(cm.exception).endswith(': 0 is not None'))
 
@@ -431,12 +452,15 @@ class SysTestTest(unittest.TestCase):
             AssertsLessTest(1, 2),
             AssertsLessEqualTest(1, 2),
             AssertsLessEqualTest(2, 2),
+            AssertsRaisesSubclassExceptionTest(),
+            AssertsRaisesExceptionTest(),
+            AssertsRaisesExceptionTupleTest(),
             AssertsNoneTest(None)
         )
 
         sequencer.report()
 
-        self.assertEqual(result, (19, 0, 0))
+        self.assertEqual(result, (22, 0, 0))
 
 
     def test_testcase_description(self):
