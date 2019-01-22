@@ -3,7 +3,8 @@ import json
 
 import systest
 from systest import Sequencer
-from systest import SequencerTestFailedError
+from systest import TestCaseFailedError
+from systest import Result
 
 from tests.testcases.named import NamedTest
 from tests.testcases.skip import SkipTest
@@ -35,6 +36,9 @@ from tests.testcases.description import DescriptionNoneTest
 from tests.testcases.description import DescriptionEmptyTest
 from tests.testcases.description import DescriptionBlankTest
 from tests.testcases.description import DescriptionMultiLineTest
+from tests.testcases.xfail import XFailPassedTest
+from tests.testcases.xfail import XFailFailedTest
+from tests.testcases.xfail import XFailSkippedTest
 
 
 class SysTestTest(unittest.TestCase):
@@ -43,6 +47,13 @@ class SysTestTest(unittest.TestCase):
         NamedTest.count = 0
         NotExecutedTest.count = 0
         FailTest.count = 0
+
+    def assert_result(self, actual, expected):
+        self.assertEqual(actual.passed, expected.passed)
+        self.assertEqual(actual.failed, expected.failed)
+        self.assertEqual(actual.skipped, expected.skipped)
+        self.assertEqual(actual.xpassed, expected.xpassed)
+        self.assertEqual(actual.xfailed, expected.xfailed)
 
     def test_serial_parallel(self):
         """Run a sequence of serial and parallel tests.
@@ -173,7 +184,7 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assertEqual(result, (2, 2, 0))
+        self.assert_result(result, Result(2, 2, 0))
         self.assertEqual(NamedTest.count, 2)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 2)
@@ -216,7 +227,7 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assertEqual(result, (17, 0, 0))
+        self.assert_result(result, Result(17, 0, 0))
 
     def test_testcase_filter(self):
         """Use the test execution filter to run a specific testcase in a
@@ -245,7 +256,7 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assertEqual(result, (2, 0, 4))
+        self.assert_result(result, Result(2, 0, 4))
         self.assertEqual(NamedTest.count, 2)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 0)
@@ -265,7 +276,7 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assertEqual(result, (1, 1, 0))
+        self.assert_result(result, Result(1, 1, 0))
         self.assertEqual(NamedTest.count, 1)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 1)
@@ -305,7 +316,7 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assertEqual(result, (0, 2, 0))
+        self.assert_result(result, Result(0, 2, 0))
         self.assertEqual(FailSetupTest.count, 1)
         self.assertEqual(FailTearDownTest.count, 1)
 
@@ -338,75 +349,75 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assertEqual(result, (0, 17, 0))
+        self.assert_result(result, Result(0, 17, 0))
 
         # Failure messages.
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsEqualTest(1, 2).run()
 
         self.assertTrue(str(cm.exception).endswith(': 1 is not equal to 2'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsNotEqualTest(2, 2).run()
 
         self.assertTrue(str(cm.exception).endswith(': 2 is equal to 2'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsTrueTest(False).run()
 
         self.assertTrue(str(cm.exception).endswith(': False is not true'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsFalseTest(True).run()
 
         self.assertTrue(str(cm.exception).endswith(': True is not false'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsInTest(1, [0, 2]).run()
 
         self.assertTrue(str(cm.exception).endswith(': 1 not found in [0, 2]'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsNotInTest(1, [0, 1, 2]).run()
 
         self.assertTrue(str(cm.exception).endswith(': 1 found in [0, 1, 2]'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsIsNoneTest(0).run()
 
         self.assertTrue(str(cm.exception).endswith(': 0 is not None'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsIsNotNoneTest(None).run()
 
         self.assertTrue(str(cm.exception).endswith(': None is None'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsGreaterTest(2, 2).run()
 
         self.assertTrue(str(cm.exception).endswith(': 2 is not greater than 2'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsGreaterEqualTest(1, 2).run()
 
         self.assertTrue(str(cm.exception).endswith(': 1 is not greater than or equal to 2'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsLessTest(2, 2).run()
 
         self.assertTrue(str(cm.exception).endswith(': 2 is not less than 2'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsLessEqualTest(2, 1).run()
 
         self.assertTrue(str(cm.exception).endswith(': 2 is not less than or equal to 1'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsRaisesNoExceptionTest().run()
 
         self.assertTrue(str(cm.exception).endswith(': ValueError not raised'))
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsRaisesNoExceptionTupleTest().run()
 
         self.assertTrue(str(cm.exception).endswith(': ValueError or TypeError not raised'))
@@ -421,7 +432,7 @@ class SysTestTest(unittest.TestCase):
 
         self.assertEqual(str(cm.exception), 'This is not a value error or type error.')
 
-        with self.assertRaises(SequencerTestFailedError) as cm:
+        with self.assertRaises(TestCaseFailedError) as cm:
             AssertsNoneTest(0).run()
 
         self.assertTrue(str(cm.exception).endswith(': 0 is not None'))
@@ -460,7 +471,7 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assertEqual(result, (22, 0, 0))
+        self.assert_result(result, Result(22, 0, 0))
 
 
     def test_testcase_description(self):
@@ -479,7 +490,7 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assertEqual(result, (4, 0, 0))
+        self.assert_result(result, Result(4, 0, 0))
 
         json_report = sequencer.summary_json()
         self.assertEqual(json_report["testcases"][0]['description'], [])
@@ -506,14 +517,14 @@ class SysTestTest(unittest.TestCase):
             NamedTest("1")
         ])
 
-        self.assertEqual(result, (2, 0, 0))
+        self.assert_result(result, Result(2, 0, 0))
 
         result = sequencer.run([
             NamedTest("1"),
             NamedTest("1")
         ])
 
-        self.assertEqual(result, (4, 0, 0))
+        self.assert_result(result, Result(4, 0, 0))
 
         sequencer.report()
 
@@ -533,7 +544,7 @@ class SysTestTest(unittest.TestCase):
             FailTest("1")
         ])
 
-        self.assertEqual(result, (0, 1, 1))
+        self.assert_result(result, Result(0, 1, 1))
 
         sequencer.report()
 
@@ -545,6 +556,23 @@ class SysTestTest(unittest.TestCase):
         self.assertEqual(json_report["testcases"][1]['result'], 'FAILED')
         self.assertTrue(
             json_report["testcases"][1]['message'].endswith('1 is not equal to 0'))
+
+    def test_expected_failure(self):
+        """Expected failute test.
+
+        """
+
+        sequencer = Sequencer("expected_failure")
+
+        result = sequencer.run(
+            XFailPassedTest(),
+            XFailFailedTest(),
+            XFailSkippedTest()
+        )
+
+        sequencer.report()
+
+        self.assert_result(result, Result(0, 0, 1, 1, 1))
 
 
 systest.configure_logging()

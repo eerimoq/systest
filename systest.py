@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import sys
+import os
 import threading
 import time
 import datetime
@@ -15,7 +16,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '4.0.0'
+__version__ = '5.0.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -66,8 +67,8 @@ LOGGER = logging.getLogger(__name__)
 
 def configure_logging(filename=None):
     """Configure the logging module to write output to the console and a
-    file. The file name is `filename` if `filename` is not None,
-    otherwise the file name is ``systest_<date>.log``.
+    file. The file name is `filename-<date>.log` if `filename` is not
+    None, otherwise the file name is ``systest-<date>.log``.
 
     The console log level is ``INFO``.
 
@@ -88,9 +89,20 @@ def configure_logging(filename=None):
     # Add a prefix to entries written to file.
     if not filename:
         filename = "systest"
-    filename = "{}-{}.log".format(filename, _make_filename(str(datetime.datetime.now())))
+
+    filename = "{}-{}.log".format(filename,
+                                  _make_filename(str(datetime.datetime.now())))
+
+    # Create any missing parent log file folders.
+    dirname = os.path.dirname(filename)
+
+    if dirname:
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+
     file_handler = logging.FileHandler(filename, "w")
-    file_handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
     root_logger.addHandler(file_handler)
 
 
@@ -135,6 +147,28 @@ def trim_docstring(docstring):
 
     return '\n'.join(trimmed)
 
+
+def xfail(message=None):
+    """Expected failure run() decorator.
+
+    """
+
+    def wrap(func):
+        def wrapper(*args, **kwargs):
+            try:
+                func(*args, **kwargs)
+            except TestCaseSkippedError:
+                raise
+            except Exception:
+                raise TestCaseXFailedError(message)
+
+            raise TestCaseXPassedError(message)
+
+        return wrapper
+
+    return wrap
+
+
 class ColorFormatter(logging.Formatter):
     """Adds color to the log entries.
 
@@ -142,19 +176,34 @@ class ColorFormatter(logging.Formatter):
 
     def format(self, record):
         formatted = super(ColorFormatter, self).format(record)
-        formatted = formatted.replace("PASSED", '\033[0;32mPASSED\033[0m')
-        formatted = formatted.replace("FAILED", '\033[0;31mFAILED\033[0m')
-        formatted = formatted.replace("SKIPPED", '\033[0;33mSKIPPED\033[0m')
+        formatted = formatted.replace(" PASSED", ' \033[0;32mPASSED\033[0m')
+        formatted = formatted.replace(" FAILED", ' \033[0;31mFAILED\033[0m')
+        formatted = formatted.replace(" SKIPPED", ' \033[0;33mSKIPPED\033[0m')
+        formatted = formatted.replace(" XPASSED", ' \033[0;31mXPASSED\033[0m')
+        formatted = formatted.replace(" XFAILED", ' \033[0;31mXFAILED\033[0m')
 
         return formatted
 
 
-class SequencerTestFailedError(Exception):
+class TestCaseFailedError(Exception):
     pass
 
 
-class SequencerTestSkippedError(Exception):
+class TestCaseSkippedError(Exception):
     pass
+
+
+class TestCaseXPassedError(Exception):
+    pass
+
+
+class TestCaseXFailedError(Exception):
+    pass
+
+
+# Deprecated. To be removed.
+SequencerTestFailedError = TestCaseFailedError
+SequencerTestSkippedError = TestCaseSkippedError
 
 
 class TestCase(object):
@@ -165,6 +214,8 @@ class TestCase(object):
     PASSED = "PASSED"
     FAILED = "FAILED"
     SKIPPED = "SKIPPED"
+    XPASSED = "XPASSED"
+    XFAILED = "XFAILED"
 
     def __init__(self, name=None):
         if name is not None:
@@ -220,7 +271,7 @@ class TestCase(object):
         if first != second:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError(
+            raise TestCaseFailedError(
                 '{}:{}: {} is not equal to {}'.format(filename,
                                                       line,
                                                       repr(first),
@@ -234,7 +285,7 @@ class TestCase(object):
         if first == second:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError(
+            raise TestCaseFailedError(
                 '{}:{}: {} is equal to {}'.format(filename,
                                                   line,
                                                   repr(first),
@@ -248,9 +299,9 @@ class TestCase(object):
         if not condition:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError('{}:{}: {} is not true'.format(filename,
-                                                                          line,
-                                                                          condition))
+            raise TestCaseFailedError('{}:{}: {} is not true'.format(filename,
+                                                                     line,
+                                                                     condition))
 
     def assert_false(self, condition):
         """Raise an exception if given condition `condition` is true.
@@ -260,9 +311,9 @@ class TestCase(object):
         if condition:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError('{}:{}: {} is not false'.format(filename,
-                                                                           line,
-                                                                           condition))
+            raise TestCaseFailedError('{}:{}: {} is not false'.format(filename,
+                                                                      line,
+                                                                      condition))
 
     def assert_in(self, member, container):
         """Raise an exception if given member `member` is not found in given
@@ -273,7 +324,7 @@ class TestCase(object):
         if member not in container:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError(
+            raise TestCaseFailedError(
                 '{}:{}: {} not found in {}'.format(filename,
                                                    line,
                                                    repr(member),
@@ -288,7 +339,7 @@ class TestCase(object):
         if member in container:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError(
+            raise TestCaseFailedError(
                 '{}:{}: {} found in {}'.format(filename,
                                                line,
                                                repr(member),
@@ -302,7 +353,7 @@ class TestCase(object):
         if obj is not None:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError(
+            raise TestCaseFailedError(
                 '{}:{}: {} is not None'.format(filename,
                                                line,
                                                repr(obj)))
@@ -315,7 +366,7 @@ class TestCase(object):
         if obj is None:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError(
+            raise TestCaseFailedError(
                 '{}:{}: {} is None'.format(filename,
                                            line,
                                            repr(obj)))
@@ -328,7 +379,7 @@ class TestCase(object):
         if first <= second:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError(
+            raise TestCaseFailedError(
                 '{}:{}: {} is not greater than {}'.format(filename,
                                                           line,
                                                           repr(first),
@@ -343,7 +394,7 @@ class TestCase(object):
         if first < second:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError(
+            raise TestCaseFailedError(
                 '{}:{}: {} is not greater than or equal to {}'.format(filename,
                                                                       line,
                                                                       repr(first),
@@ -357,7 +408,7 @@ class TestCase(object):
         if first >= second:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError(
+            raise TestCaseFailedError(
                 '{}:{}: {} is not less than {}'.format(filename,
                                                        line,
                                                        repr(first),
@@ -372,7 +423,7 @@ class TestCase(object):
         if first > second:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError(
+            raise TestCaseFailedError(
                 '{}:{}: {} is not less than or equal to {}'.format(filename,
                                                                    line,
                                                                    repr(first),
@@ -406,7 +457,7 @@ class TestCase(object):
                             for expected_type in self.expected_type
                         ])
 
-                    raise SequencerTestFailedError(
+                    raise TestCaseFailedError(
                         '{}:{}: {} not raised'.format(filename, line, name))
                 elif issubclass(exception_type, self.expected_type):
                     # Python 2 and 3 compatibility.
@@ -428,10 +479,51 @@ class TestCase(object):
         if obj is not None:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise SequencerTestFailedError(
-                '{}:{}: {} is not None'.format(filename,
-                                               line,
-                                               repr(obj)))
+            raise TestCaseFailedError('{}:{}: {} is not None'.format(filename,
+                                                                     line,
+                                                                     repr(obj)))
+
+
+class Result(object):
+
+    def __init__(self, passed=0, failed=0, skipped=0, xpassed=0, xfailed=0):
+        self.passed = passed
+        self.failed = failed
+        self.skipped = skipped
+        self.xpassed = xpassed
+        self.xfailed = xfailed
+
+    def __getitem__(self, index):
+        # Deprecated.
+        if index == 0:
+            return self.passed
+        elif index == 1:
+            return self.failed
+        elif index == 2:
+            return self.skipped
+        else:
+            raise IndexError
+
+    def __iter__(self):
+        # Deprecated.
+        # Allows unpacking as ``passed, failed, skipped = result``.
+        yield self.passed
+        yield self.failed
+        yield self.skipped
+
+    def __str__(self):
+        if self.failed > 0:
+            result = TestCase.FAILED
+        else:
+            result = TestCase.PASSED
+
+        return ('{} (passed: {}, failed: {}, skipped: {}, xpassed: {}, '
+                'xfailed: {})').format(result,
+                                       self.passed,
+                                       self.failed,
+                                       self.skipped,
+                                       self.xpassed,
+                                       self.xfailed)
 
 
 class Sequencer(object):
@@ -522,37 +614,43 @@ class Sequencer(object):
 
         """
 
-        def test(test, passed, failed, skipped):
+        def test(test, result):
             if test.result == TestCase.PASSED:
-                passed += 1
+                result.passed += 1
             elif test.result == TestCase.FAILED:
-                failed += 1
+                result.failed += 1
+            elif test.result == TestCase.XPASSED:
+                result.xpassed += 1
+            elif test.result == TestCase.XFAILED:
+                result.xfailed += 1
             else:
-                skipped += 1
+                result.skipped += 1
 
-            return passed, failed, skipped
+            return result
 
-        def sequential_tests(tests, passed, failed, skipped):
+        def sequential_tests(tests, result):
             for test in tests:
-                passed, failed, skipped = recursivly(test, passed, failed, skipped)
-            return passed, failed, skipped
+                result = recursivly(test, result)
 
-        def parallel_tests(tests, passed, failed, skipped):
+            return result
+
+        def parallel_tests(tests, result):
             for test in tests:
-                passed, failed, skipped = recursivly(test, passed, failed, skipped)
-            return passed, failed, skipped
+                result = recursivly(test, result)
 
-        def recursivly(tests, passed, failed, skipped):
+            return result
+
+        def recursivly(tests, result):
             if isinstance(tests, TestCase):
-                return test(tests, passed, failed, skipped)
+                return test(tests, result)
             elif isinstance(tests, list):
-                return sequential_tests(tests, passed, failed, skipped)
+                return sequential_tests(tests, result)
             elif isinstance(tests, tuple):
-                return parallel_tests(tests, passed, failed, skipped)
+                return parallel_tests(tests, result)
             else:
                 raise ValueError("bad type {}".format(type(tests)))
 
-        return recursivly(self.tests, 0, 0, 0)
+        return recursivly(self.tests, Result())
 
     def summary(self):
         """Compile the test execution summary and return it as a string.
@@ -598,12 +696,7 @@ class Sequencer(object):
 
         summary = '\n'.join(recursivly(self.tests, 0))
 
-        number_of_failed_tets = self.summary_count()[1]
-
-        if number_of_failed_tets > 0:
-            result = TestCase.FAILED
-        else:
-            result = TestCase.PASSED
+        result = self.summary_count()
 
         return _SUMMARY_FMT.format(summary=summary,
                                    execution_time=_human_time(self.execution_time),
@@ -698,6 +791,7 @@ class Sequencer(object):
         def sequential_tests(parents, tests):
             for test in tests:
                 parents = recursivly(parents, test)
+
             return parents
 
         def parallel_tests(parents, tests):
@@ -904,9 +998,13 @@ class _TestThread(threading.Thread):
         try:
             self.run_tests(self.test)
             self.result = TestCase.PASSED
-        except SequencerTestSkippedError:
+        except TestCaseSkippedError:
             self.result = TestCase.SKIPPED
-        except SequencerTestFailedError:
+        except TestCaseXPassedError:
+            self.result = TestCase.XPASSED
+        except TestCaseXFailedError:
+            self.result = TestCase.XFAILED
+        except TestCaseFailedError:
             pass
 
     def run_test(self, test):
@@ -947,12 +1045,22 @@ class _TestThread(threading.Thread):
                                 finally:
                                     test.teardown()
                             else:
-                                raise SequencerTestSkippedError('Testcase skipped by failure.')
+                                raise TestCaseSkippedError('Testcase skipped by failure.')
                     else:
-                        raise SequencerTestSkippedError('Testcase disabled by filter.')
-                except SequencerTestSkippedError as e:
+                        raise TestCaseSkippedError('Testcase disabled by filter.')
+                except TestCaseSkippedError as e:
                     LOGGER.info("testcase skipped: %s", e)
                     result = TestCase.SKIPPED
+                    message = str(e)
+                    raise
+                except TestCaseXPassedError as e:
+                    LOGGER.info("testcase xpassed: %s", e)
+                    result = TestCase.XPASSED
+                    message = str(e)
+                    raise
+                except TestCaseXFailedError as e:
+                    LOGGER.info("testcase xfailed: %s", e)
+                    result = TestCase.XFAILED
                     message = str(e)
                     raise
                 except BaseException as e:
@@ -991,6 +1099,7 @@ class _TestThread(threading.Thread):
         for test in tests:
             if prev_test_failed:
                 prev_test_failed = False
+
                 if isinstance(test, list):
                     continue
 
@@ -1022,7 +1131,7 @@ class _TestThread(threading.Thread):
         # raise an exception if at least one test failed
         for child in children:
             if child.result == TestCase.FAILED:
-                raise SequencerTestFailedError(
+                raise TestCaseFailedError(
                     "At least one of the parallel testcases failed.")
 
     def run_tests(self, tests):

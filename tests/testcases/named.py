@@ -1,4 +1,4 @@
-from systest import TestCase, SequencerTestFailedError
+from systest import TestCase
 
 import threading
 import time
