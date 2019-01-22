@@ -16,7 +16,7 @@ from collections import OrderedDict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.0.0'
+__version__ = '5.0.1'
 
 
 _RUN_HEADER_FMT ="""
@@ -160,6 +160,8 @@ def xfail(message=None):
             except TestCaseSkippedError:
                 raise
             except Exception:
+                _log_traceback()
+
                 raise TestCaseXFailedError(message)
 
             raise TestCaseXPassedError(message)
@@ -1065,11 +1067,7 @@ class _TestThread(threading.Thread):
                     raise
                 except BaseException as e:
                     self.sequencer.run_failed = True
-
-                    for entry in traceback.format_exception(*sys.exc_info()):
-                        for line in entry.splitlines():
-                            LOGGER.error(line.rstrip())
-
+                    _log_traceback()
                     message = str(e)
                     raise
 
@@ -1148,3 +1146,9 @@ class _TestThread(threading.Thread):
                 self.run_sequential_tests(tests)
             else:
                 self.run_parallel_tests(tests)
+
+
+def _log_traceback():
+    for entry in traceback.format_exception(*sys.exc_info()):
+        for line in entry.splitlines():
+            LOGGER.error(line.rstrip())
