@@ -166,7 +166,7 @@ The output is:
    ]
 
    Execution time: 0m 0s
-   Result: PASSED
+   Result: PASSED (passed: 5, failed: 0, skipped: 0, xpassed: 0, xfailed: 0)
 
    ----------------------- Test summary end -----------------------
 
