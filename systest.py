@@ -12,11 +12,11 @@ import subprocess
 import logging
 import traceback
 import json
-from collections import OrderedDict
+from collections import OrderedDict as odict
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.0.1'
+__version__ = '5.1.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -717,12 +717,12 @@ class Sequencer(object):
                 result = TestCase.SKIPPED
                 execution_time = None
 
-            summary = {
-                'name': test.name,
-                'description': trim_docstring(test.__doc__).splitlines(),
-                'result': result,
-                'execution_time': execution_time
-            }
+            summary = odict([
+                ('name', test.name),
+                ('description', trim_docstring(test.__doc__).splitlines()),
+                ('result', result),
+                ('execution_time', execution_time)
+            ])
 
             if test.message is not None:
                 summary['message'] = test.message
@@ -748,7 +748,7 @@ class Sequencer(object):
         testcases = []
         recursivly(self.tests, testcases)
 
-        return OrderedDict([
+        return odict([
             ('name', self.name),
             ('date', str(datetime.datetime.now())),
             ('node', platform.node()),
