@@ -25,4 +25,7 @@ if __name__ == "__main__":
           ],
           url='https://github.com/eerimoq/systest',
           py_modules=['systest'],
+          install_requires=[
+              'humanfriendly'
+          ],
           test_suite="tests")

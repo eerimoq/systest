@@ -13,10 +13,11 @@ import logging
 import traceback
 import json
 from collections import OrderedDict as odict
+from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.1.0'
+__version__ = '5.2.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -701,7 +702,7 @@ class Sequencer(object):
         result = self.summary_count()
 
         return _SUMMARY_FMT.format(summary=summary,
-                                   execution_time=_human_time(self.execution_time),
+                                   execution_time=format_timespan(self.execution_time),
                                    result=result)
 
     def summary_json(self):
@@ -712,7 +713,7 @@ class Sequencer(object):
         def test(test):
             if test.result:
                 result = test.result
-                execution_time = _human_time(test.execution_time)
+                execution_time = format_timespan(test.execution_time)
             else:
                 result = TestCase.SKIPPED
                 execution_time = None
@@ -821,7 +822,7 @@ class Sequencer(object):
                         ', style="{style}"];').format(
                             parent_id=id(self.parent),
                             test_id=id(self.test),
-                            parent_finish_time=_human_time(self.parent.finish_time),
+                            parent_finish_time=format_timespan(self.parent.finish_time),
                             style=self.style)
 
         def edge_name(parent, test):
@@ -975,13 +976,6 @@ def _flatten(l):
     return [item for sublist in l for item in sublist]
 
 
-def _human_time(seconds):
-    mins = int(seconds // 60)
-    secs = int(seconds - 60 * mins)
-
-    return "{}m {}s".format(mins, secs)
-
-
 class _TestThread(threading.Thread):
 
     def __init__(self, test, sequencer):
@@ -1080,7 +1074,7 @@ class _TestThread(threading.Thread):
 
             log_lines(_TEST_FOOTER_FMT.format(name=test.name,
                                               result=result,
-                                              duration=_human_time(execution_time)))
+                                              duration=format_timespan(execution_time)))
 
             test.result = result
             test.message = message
