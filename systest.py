@@ -17,17 +17,17 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.3.0'
+__version__ = '5.3.1'
 
 
-_RUN_HEADER_FMT ="""
+_RUN_HEADER_FMT ='''
 Name: {name}
 Date: {date}
 Node: {node}
 User: {user}\
-"""
+'''
 
-_TEST_HEADER_FMT = """
+_TEST_HEADER_FMT = '''
 ---------------------------------------------------------------
 
 Name: {name}
@@ -35,13 +35,13 @@ Description:
 
 {description}
 
-"""
+'''
 
-_TEST_FOOTER_FMT = """
+_TEST_FOOTER_FMT = '''
 {name}: {result} in {duration}\
-"""
+'''
 
-_SUMMARY_FMT = """
+_SUMMARY_FMT = '''
 ---------------------- Test summary begin ----------------------
 
 {summary}
@@ -50,9 +50,9 @@ Execution time: {execution_time}
 Result: {result}
 
 ----------------------- Test summary end -----------------------
-"""
+'''
 
-_DIGRAPH_FMT = """\
+_DIGRAPH_FMT = '''\
 digraph {name} {{
     {begin_id} [label="begin" shape=box];
     {end_id} [label="end" shape=box];
@@ -61,7 +61,7 @@ digraph {name} {{
 
 {deps}
 }}
-"""
+'''
 
 LOGGER = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ def configure_logging(filename=None):
 
 
 def log_lines(text):
-    """Create a log entry of each line in given text.
+    """Create a log infi entry of each line in given text.
 
     """
 
@@ -225,6 +225,7 @@ class TestCase(object):
             self.name = name
         else:
             self.name = type(self).__name__
+
         self.result = None
         self.message = None
         self.sequencer = None
@@ -800,6 +801,7 @@ class Sequencer(object):
             if test.result:
                 test.start_parent = get_start_parent(test)
                 test.finish_time = test.start_parent.finish_time + test.execution_time
+
                 return [test]
             else:
                 # Ignore tests that were not executed.
@@ -847,6 +849,7 @@ class Sequencer(object):
             for parent in sorted(test.parents, key=lambda p: p.finish_time, reverse=True):
                 if edge_name(parent, test) in edges:
                     continue
+
                 if (style == "bold") and (test.start_parent == parent):
                     edges[edge_name(parent, test)] = Edge(parent, test, "bold")
                     edges_recursivly(edges, parent, "bold")
@@ -1014,8 +1017,30 @@ class _TestThread(threading.Thread):
             self.result = TestCase.XPASSED
         except TestCaseXFailedError:
             self.result = TestCase.XFAILED
-        except TestCaseFailedError:
+        except Exception:
             pass
+
+    def run_test_normal(self, test):
+        if self.sequencer.is_testcase_enabled(test):
+            if self.sequencer.continue_on_failure:
+                test.setup()
+
+                try:
+                    test.run()
+                finally:
+                    test.teardown()
+            else:
+                if not self.sequencer.run_failed:
+                    test.setup()
+
+                    try:
+                        test.run()
+                    finally:
+                        test.teardown()
+                else:
+                    raise TestCaseSkippedError('Testcase skipped by failure.')
+        else:
+            raise TestCaseSkippedError('Testcase disabled by filter.')
 
     def run_test(self, test):
         docstring = trim_docstring(test.__doc__)
@@ -1031,33 +1056,15 @@ class _TestThread(threading.Thread):
 
         # Run the test.
         try:
+            start_time = time.time()
+
             if self.sequencer.dry_run:
-                start_time = None
                 execution_time = test.dry_run()
             else:
-                start_time = time.time()
+                execution_time = None
 
                 try:
-                    if self.sequencer.is_testcase_enabled(test):
-                        if self.sequencer.continue_on_failure:
-                            test.setup()
-
-                            try:
-                                test.run()
-                            finally:
-                                test.teardown()
-                        else:
-                            if not self.sequencer.run_failed:
-                                test.setup()
-
-                                try:
-                                    test.run()
-                                finally:
-                                    test.teardown()
-                            else:
-                                raise TestCaseSkippedError('Testcase skipped by failure.')
-                    else:
-                        raise TestCaseSkippedError('Testcase disabled by filter.')
+                    self.run_test_normal(test)
                 except TestCaseSkippedError as e:
                     LOGGER.info("testcase skipped: %s", e)
                     result = TestCase.SKIPPED
@@ -1083,7 +1090,7 @@ class _TestThread(threading.Thread):
         finally:
             finish_time = time.time()
 
-            if start_time is not None:
+            if execution_time is None:
                 execution_time = (finish_time - start_time)
 
             log_lines(_TEST_FOOTER_FMT.format(name=test.name,
