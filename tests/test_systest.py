@@ -39,6 +39,8 @@ from tests.testcases.description import DescriptionMultiLineTest
 from tests.testcases.xfail import XFailPassedTest
 from tests.testcases.xfail import XFailFailedTest
 from tests.testcases.xfail import XFailSkippedTest
+from tests.testcases.custom_json_summary import CustomJsonSequencer
+from tests.testcases.custom_json_summary import CustomJsonTest
 
 
 class SysTestTest(unittest.TestCase):
@@ -573,6 +575,37 @@ class SysTestTest(unittest.TestCase):
         sequencer.report()
 
         self.assert_result(result, Result(0, 0, 1, 1, 1))
+
+    def test_custom_json_summary(self):
+        """Custom JSON summary.
+
+        """
+
+        sequencer = CustomJsonSequencer("custom_json_summary")
+
+        sequencer.run(
+            CustomJsonTest(1),
+            CustomJsonTest('foo')
+        )
+
+        json_summary = sequencer.summary_json()
+
+        self.assertEqual(
+            json_summary['testcases'],
+            [
+                {
+                    "name": "CustomJsonTest",
+                    "description": [],
+                    "result": "PASSED",
+                    "data": 1
+                },
+                {
+                    "name": "CustomJsonTest",
+                    "description": [],
+                    "result": "PASSED",
+                    "data": "foo"
+                }
+            ])
 
 
 systest.configure_logging()

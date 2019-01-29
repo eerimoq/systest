@@ -17,7 +17,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.2.0'
+__version__ = '5.3.0'
 
 
 _RUN_HEADER_FMT ="""
@@ -655,25 +655,32 @@ class Sequencer(object):
 
         return recursivly(self.tests, Result())
 
+    def summary_test(self, test, indent):
+        """Returns a test case summary line.
+
+        """
+
+        fmt = ' ' * indent + test.name + ': {result}{message}'
+
+        if test.result:
+            result = test.result
+        else:
+            result = TestCase.SKIPPED
+
+        if test.message is None:
+            message = ''
+        else:
+            message = ' ({})'.format(test.message)
+
+        return fmt.format(result=result, message=message)
+
     def summary(self):
         """Compile the test execution summary and return it as a string.
 
         """
 
         def test(test, indent):
-            fmt = ' ' * indent + test.name + ': {result}{message}'
-
-            if test.result:
-                result = test.result
-            else:
-                result = TestCase.SKIPPED
-
-            if test.message is None:
-                message = ''
-            else:
-                message = ' ({})'.format(test.message)
-
-            return [fmt.format(result=result, message=message)]
+            return [self.summary_test(test, indent)]
 
         def sequential_tests(tests, indent):
             return ['\n'.join([' ' * indent + '[',
@@ -705,30 +712,37 @@ class Sequencer(object):
                                    execution_time=format_timespan(self.execution_time),
                                    result=result)
 
+    def summary_json_test(self, test):
+        """Returns a test case summary ordered dictionary.
+
+        """
+
+        if test.result:
+            result = test.result
+            execution_time = format_timespan(test.execution_time)
+        else:
+            result = TestCase.SKIPPED
+            execution_time = None
+
+        summary = odict([
+            ('name', test.name),
+            ('description', trim_docstring(test.__doc__).splitlines()),
+            ('result', result),
+            ('execution_time', execution_time)
+        ])
+
+        if test.message is not None:
+            summary['message'] = test.message
+
+        return summary
+
     def summary_json(self):
         """Compile the test execution summary and return it as a JSON object.
 
         """
 
         def test(test):
-            if test.result:
-                result = test.result
-                execution_time = format_timespan(test.execution_time)
-            else:
-                result = TestCase.SKIPPED
-                execution_time = None
-
-            summary = odict([
-                ('name', test.name),
-                ('description', trim_docstring(test.__doc__).splitlines()),
-                ('result', result),
-                ('execution_time', execution_time)
-            ])
-
-            if test.message is not None:
-                summary['message'] = test.message
-
-            return summary
+            return self.summary_json_test(test)
 
         def sequential_tests(tests, testcases):
             return [recursivly(test, testcases) for test in tests]
