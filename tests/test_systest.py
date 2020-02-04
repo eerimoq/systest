@@ -13,6 +13,7 @@ from tests.testcases.fail import FailSetupTest
 from tests.testcases.fail import FailTearDownTest
 from tests.testcases.asserts import AssertsEqualTest
 from tests.testcases.asserts import AssertsNotEqualTest
+from tests.testcases.asserts import AssertsTextEqual
 from tests.testcases.asserts import AssertsTrueTest
 from tests.testcases.asserts import AssertsFalseTest
 from tests.testcases.asserts import AssertsInTest
@@ -329,9 +330,31 @@ class SysTestTest(unittest.TestCase):
 
         sequencer = Sequencer("failed_asserts")
 
+        TEXT_ONE = '''First lines match
+Second line doesn't
+Third line pads    
+Fourth line fine
+'''
+        TEXT_TWO = '''First lines match
+Second line does not
+Third line pads
+Fourth line fine
+'''
+        TEXT_EXPECT = ''': Mismatch found:
+  First lines match
+- Second line doesn't
+?                  ^
++ Second line does not
+?                 + ^
+- Third line pads    
+?                ----
++ Third line pads
+  Fourth line fine'''
+
         result = sequencer.run(
             AssertsEqualTest(1, 2),
             AssertsNotEqualTest(2, 2),
+            AssertsTextEqual(TEXT_ONE, TEXT_TWO),
             AssertsTrueTest(False),
             AssertsFalseTest(True),
             AssertsInTest(1, [0, 2]),
@@ -351,7 +374,7 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assert_result(result, Result(0, 17, 0))
+        self.assert_result(result, Result(0, 18, 0))
 
         # Failure messages.
         with self.assertRaises(TestCaseFailedError) as cm:
@@ -363,6 +386,11 @@ class SysTestTest(unittest.TestCase):
             AssertsNotEqualTest(2, 2).run()
 
         self.assertTrue(str(cm.exception).endswith(': 2 is equal to 2'))
+
+        with self.assertRaises(TestCaseFailedError) as cm:
+            AssertsTextEqual(TEXT_ONE, TEXT_TWO).run()
+
+        self.assertTrue(str(cm.exception).endswith(TEXT_EXPECT))
 
         with self.assertRaises(TestCaseFailedError) as cm:
             AssertsTrueTest(False).run()
@@ -446,9 +474,16 @@ class SysTestTest(unittest.TestCase):
 
         sequencer = Sequencer("passed_asserts")
 
+        TEXT_ONE = '''First lines match
+So does the second
+Even this line with trailing whitespace     
+Fourth line also fine
+'''
+
         result = sequencer.run(
             AssertsEqualTest(1, 1),
             AssertsNotEqualTest(2, 1),
+            AssertsTextEqual(TEXT_ONE, TEXT_ONE),
             AssertsTrueTest(True),
             AssertsTrueTest(1),
             AssertsTrueTest([1]),
@@ -473,7 +508,7 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assert_result(result, Result(22, 0, 0))
+        self.assert_result(result, Result(23, 0, 0))
 
 
     def test_testcase_description(self):
