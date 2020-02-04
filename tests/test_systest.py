@@ -13,7 +13,7 @@ from tests.testcases.fail import FailSetupTest
 from tests.testcases.fail import FailTearDownTest
 from tests.testcases.asserts import AssertsEqualTest
 from tests.testcases.asserts import AssertsNotEqualTest
-from tests.testcases.asserts import AssertsMultiLineEqual
+from tests.testcases.asserts import AssertsTextEqual
 from tests.testcases.asserts import AssertsTrueTest
 from tests.testcases.asserts import AssertsFalseTest
 from tests.testcases.asserts import AssertsInTest
@@ -330,17 +330,17 @@ class SysTestTest(unittest.TestCase):
 
         sequencer = Sequencer("failed_asserts")
 
-        MULTI_ONE = '''First lines match
+        TEXT_ONE = '''First lines match
 Second line doesn't
 Third line pads    
 Fourth line fine
 '''
-        MULTI_TWO = '''First lines match
+        TEXT_TWO = '''First lines match
 Second line does not
 Third line pads
 Fourth line fine
 '''
-        MULTI_EXPECT = ''': Mismatch found:
+        TEXT_EXPECT = ''': Mismatch found:
   First lines match
 - Second line doesn't
 ?                  ^
@@ -354,7 +354,7 @@ Fourth line fine
         result = sequencer.run(
             AssertsEqualTest(1, 2),
             AssertsNotEqualTest(2, 2),
-            AssertsMultiLineEqual(MULTI_ONE, MULTI_TWO),
+            AssertsTextEqual(TEXT_ONE, TEXT_TWO),
             AssertsTrueTest(False),
             AssertsFalseTest(True),
             AssertsInTest(1, [0, 2]),
@@ -388,9 +388,9 @@ Fourth line fine
         self.assertTrue(str(cm.exception).endswith(': 2 is equal to 2'))
 
         with self.assertRaises(TestCaseFailedError) as cm:
-            AssertsMultiLineEqual(MULTI_ONE, MULTI_TWO).run()
+            AssertsTextEqual(TEXT_ONE, TEXT_TWO).run()
 
-        self.assertTrue(str(cm.exception).endswith(MULTI_EXPECT))
+        self.assertTrue(str(cm.exception).endswith(TEXT_EXPECT))
 
         with self.assertRaises(TestCaseFailedError) as cm:
             AssertsTrueTest(False).run()
@@ -474,7 +474,7 @@ Fourth line fine
 
         sequencer = Sequencer("passed_asserts")
 
-        MULTI_ONE = '''First lines match
+        TEXT_ONE = '''First lines match
 So does the second
 Even this line with trailing whitespace     
 Fourth line also fine
@@ -483,7 +483,7 @@ Fourth line also fine
         result = sequencer.run(
             AssertsEqualTest(1, 1),
             AssertsNotEqualTest(2, 1),
-            AssertsMultiLineEqual(MULTI_ONE, MULTI_ONE),
+            AssertsTextEqual(TEXT_ONE, TEXT_ONE),
             AssertsTrueTest(True),
             AssertsTrueTest(1),
             AssertsTrueTest([1]),

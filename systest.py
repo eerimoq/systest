@@ -296,7 +296,7 @@ class TestCase(object):
                                                   repr(first),
                                                   repr(second)))
 
-    def assert_multiline_equal(self, first, second):
+    def assert_text_equal(self, first, second):
         """
         Raises an exception if ``first`` and ``second`` are not equal.
 
