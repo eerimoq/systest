@@ -23,6 +23,17 @@ class AssertsNotEqualTest(TestCase):
         self.assert_not_equal(self.first, self.second)
 
 
+class AssertsMultiLineEqual(TestCase):
+
+    def __init__(self, first, second):
+        super(AssertsMultiLineEqual, self).__init__()
+        self.first = first
+        self.second = second
+
+    def run(self):
+        self.assert_multiline_equal(self.first, self.second)
+
+
 class AssertsTrueTest(TestCase):
 
     def __init__(self, condition):

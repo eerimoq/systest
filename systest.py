@@ -313,9 +313,9 @@ class TestCase(object):
         if first != second:
             filename, line, _, _ = traceback.extract_stack()[-2]
             differ = difflib.Differ()
-            diff = differ.compare(first, second)
+            diff = differ.compare(first.splitlines(), second.splitlines())
 
-            text = ''.join(diff)
+            text = '\n'.join([line.rstrip('\n') for line in diff])
             raise TestCaseFailedError(
                 '{}:{}: Mismatch found:\n{}'.format(filename,
                                                     line,
