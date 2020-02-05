@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+from abc import ABCMeta, abstractmethod
 import sys
 import os
 import threading
@@ -14,6 +15,7 @@ import traceback
 import json
 from collections import OrderedDict as odict
 from humanfriendly import format_timespan
+from six import add_metaclass
 
 
 __author__ = 'Erik Moqvist'
@@ -39,17 +41,6 @@ Description:
 
 _TEST_FOOTER_FMT = '''
 {name}: {result} in {duration}\
-'''
-
-_SUMMARY_FMT = '''
----------------------- Test summary begin ----------------------
-
-{summary}
-
-Execution time: {execution_time}
-Result: {result}
-
------------------------ Test summary end -----------------------
 '''
 
 _DIGRAPH_FMT = '''\
@@ -488,14 +479,69 @@ class TestCase(object):
                                                                      repr(obj)))
 
 
-class Result(object):
+@add_metaclass(ABCMeta)
+class ResultVisitor(object):
+    @abstractmethod
+    def visit_test(self, test):
+        """
+        Called for each result in the result tree.
 
-    def __init__(self, passed=0, failed=0, skipped=0, xpassed=0, xfailed=0):
-        self.passed = passed
-        self.failed = failed
-        self.skipped = skipped
-        self.xpassed = xpassed
-        self.xfailed = xfailed
+        :param test: TestCase object.
+        :return:
+        """
+        raise NotImplementedError('Abstract method must be overridden')
+
+    @abstractmethod
+    def start_serial(self):
+        raise NotImplementedError('Abstract method must be overridden')
+
+    @abstractmethod
+    def end_serial(self):
+        raise NotImplementedError('Abstract method must be overridden')
+
+    @abstractmethod
+    def start_parallel(self):
+        raise NotImplementedError('Abstract method must be overridden')
+
+    @abstractmethod
+    def end_parallel(self):
+        raise NotImplementedError('Abstract method must be overridden')
+
+
+class CountReport(ResultVisitor):
+    def __init__(self):
+        self.passed = 0
+        self.failed = 0
+        self.skipped = 0
+        self.xpassed = 0
+        self.xfailed = 0
+
+    def visit_test(self, test):
+        """
+        Tallies state of each visited test.
+        """
+        if test.result == TestCase.PASSED:
+            self.passed += 1
+        elif test.result == TestCase.FAILED:
+            self.failed += 1
+        elif test.result == TestCase.XPASSED:
+            self.xpassed += 1
+        elif test.result == TestCase.XFAILED:
+            self.xfailed += 1
+        else:
+            self.skipped += 1
+
+    def start_serial(self):
+        pass
+
+    def end_serial(self):
+        pass
+
+    def start_parallel(self):
+        pass
+
+    def end_parallel(self):
+        pass
 
     def __getitem__(self, index):
         # Deprecated.
@@ -530,6 +576,255 @@ class Result(object):
                                        self.xfailed)
 
 
+class SummaryReporter(ResultVisitor):
+    _SUMMARY_FMT = '''
+    ---------------------- Test summary begin ----------------------
+
+    {summary}
+
+    Execution time: {execution_time}
+    Result: {result}
+
+    ----------------------- Test summary end -----------------------
+    '''
+    def __init__(self):
+        self._indent = -4
+        self._summary = []
+
+    def visit_test(self, test):
+        """
+        Summarises each visited test.
+
+        :param test:
+        :return:
+        """
+        fmt = ' ' * self._indent + test.name + ': {result}{message}'
+
+        if test.result:
+            result = test.result
+        else:
+            result = TestCase.SKIPPED
+
+        if test.message is None:
+            message = ''
+        else:
+            message = ' ({})'.format(test.message)
+
+        self._summary.append(fmt.format(result=result, message=message))
+
+    def start_serial(self):
+        self._summary.append(' ' * self._indent + '[')
+        self._indent += 4
+
+    def end_serial(self):
+        self._indent -= 4
+        self._summary.append(' ' * self._indent + ']')
+
+    def start_parallel(self):
+        self._summary.append(' ' * self._indent + '(')
+        self._indent += 4
+
+    def end_parallel(self):
+        self._indent -= 4
+        self._summary.append(' ' * self._indent + ')')
+
+    def _test(self, test, indent):
+        return [self.summary_test(test, indent)]
+
+    def __str__(self):
+        return '\n'.join(self._summary)
+
+
+class JsonReporter(ResultVisitor):
+    def __init__(self):
+        self._structure = None
+        self._path = []
+
+    def visit_test(self, test):
+        if test.result:
+            result = test.result
+            execution_time = format_timespan(test.execution_time)
+        else:
+            result = TestCase.SKIPPED
+            execution_time = None
+
+        summary = odict([
+            ('name', test.name),
+            ('description', trim_docstring(test.__doc__).splitlines()),
+            ('result', result),
+            ('execution_time', execution_time)
+        ])
+
+        if test.message is not None:
+            summary['message'] = test.message
+
+        self._path[-1].append(summary)
+
+    def start_serial(self):
+        new_list = []
+        self._path[-1].append(new_list)
+        self._path.append(new_list)
+        if self._structure is None:
+            self._structure = new_list
+
+    def end_serial(self):
+        self._path.pop()
+
+    def start_parallel(self):
+        new_list = []
+        self._path[-1].append(new_list)
+        self._path.append(new_list)
+        if self._structure is None:
+            self._structure = new_list
+
+    def end_parallel(self):
+        self._path.pop()
+
+    def report(self):
+        return odict([
+            ('name', self.name),
+            ('date', str(datetime.datetime.now())),
+            ('node', platform.node()),
+            ('user', getpass.getuser()),
+            ('testcases', self._structure)
+        ])
+
+    def write_report(self, output_file):
+        if hasattr(output_file, 'write'):
+            output_file.write(json.dumps(self.report(), indent=4))
+        else:
+            with open(output_file, 'w') as fout
+                fout.write(json.dumps(self.summary_json(), indent=4))
+
+
+class GraphReporter(ResultVisitor):
+    class Edge(object):
+
+        def __init__(self, parent, test, style):
+            self.parent = parent
+            self.test = test
+            self.style = style
+
+        def __str__(self):
+            return ('    {parent_id} -> {test_id} [label="{parent_finish_time}"'
+                    ', style="{style}"];').format(
+                parent_id=id(self.parent),
+                test_id=id(self.test),
+                parent_finish_time=format_timespan(self.parent.finish_time),
+                style=self.style)
+
+    def __init__(self):
+        # Create the begin test case node.
+        begin = TestCase("begin")
+        begin.result = TestCase.PASSED
+        begin.finish_time = 0.0
+
+        # Use begin as the parent of the first test case.
+        self._parent = [begin]
+
+        # Create the end test case node.
+        #end = TestCase("end")
+        #end.result = TestCase.PASSED
+        #end.execution_time = 0.0
+
+        self._edges = {}
+        self._nodes = []
+        self._deps = []
+
+    def visit_test(self, test):
+        def edge_name(parent, test):
+            return '{}  ->  {}'.format(id(parent), id(test))
+
+        self._nodes.append('    {} [label="{}"]'.format(id(test), test.name))
+        if test.result:
+            self._deps.append(str(self._edges[edge_name(self._parent[-1], test)]))
+
+        test.parents = parents
+
+        if test.result:
+            test.start_parent = get_start_parent(test)
+            test.finish_time = test.start_parent.finish_time + test.execution_time
+
+        self._parent[-1] = test
+
+        def edges_recursivly(edges, test, style):
+            # Take the slowest path first.
+            for parent in sorted(test.parents, key=lambda p: p.finish_time, reverse=True):
+                if edge_name(parent, test) in edges:
+                    continue
+
+                if (style == "bold") and (test.start_parent == parent):
+                    edges[edge_name(parent, test)] = Edge(parent, test, "bold")
+                    edges_recursivly(edges, parent, "bold")
+                else:
+                    edges[edge_name(parent, test)] = Edge(parent, test, "solid")
+                    edges_recursivly(edges, parent, "solid")
+
+        # Bold edges in the slowest execution path.
+        edges_recursivly(edges, end, "bold")
+
+
+    def start_serial(self):
+        pass
+
+    def end_serial(self):
+        pass
+
+    def start_parallel(self):
+        self._parent.append(None)
+
+    def end_parallel(self):
+        self._parent.pop()
+
+    def dot_graph(self):
+        """Create a graphviz dot digraph of given test sequence.
+
+        The slowest execution path has bold edges.
+
+        Use the program ``dot`` to create an image from the output of
+        this function.
+
+        ``dot -Tpng -Gdpi=200 -o mysequence.png mysequence.dot``
+
+        """
+
+        def get_start_parent(test):
+            start_time = -1.0
+            start_parent = None
+
+            for parent in test.parents:
+                if parent.finish_time > start_time:
+                    start_time = parent.finish_time
+                    start_parent = parent
+
+            return start_parent
+
+
+        return _DIGRAPH_FMT.format(name=_make_filename(self.name),
+                                   begin_id=id(begin),
+                                   end_id=id(end),
+                                   nodes='\n'.join(self._nodes),
+                                   deps='\n'.join(self._deps))
+
+    def _report_dot(self, basename):
+        filename_dot = basename + ".dot"
+        filename_png = basename + ".png"
+
+        with open(filename_dot, "w") as fout:
+            fout.write(self.dot_digraph())
+
+        try:
+            command = ["dot", "-Tpng", "-Gdpi=200", "-o", filename_png, filename_dot]
+            subprocess.check_call(command)
+        except subprocess.CalledProcessError:
+            print("Unable to create image from dot file '{}' using command '{}'".format(
+                filename_dot, ' '.join(command)))
+        except OSError:
+            print(("Unable to create image from dot file '{}'. Program 'dot' is not "
+                   "installed.").format(filename_dot))
+
+
+
 class Sequencer(object):
 
     def __init__(self,
@@ -547,6 +842,10 @@ class Sequencer(object):
         self.force_serial_execution = force_serial_execution
         self.continue_on_failure = True
         self.run_failed = False
+        self._reporters = []
+
+    def register_reporter(self, reporter):
+        self._reporters.append(reporter)
 
     def is_testcase_enabled(self, test):
         enabled = True
@@ -610,365 +909,6 @@ class Sequencer(object):
 
         end_time = time.time()
         self.execution_time += (end_time - start_time)
-
-        return self.summary_count()
-
-    def summary_count(self):
-        """Compile the test execution summary and return it as a string.
-
-        """
-
-        def test(test, result):
-            if test.result == TestCase.PASSED:
-                result.passed += 1
-            elif test.result == TestCase.FAILED:
-                result.failed += 1
-            elif test.result == TestCase.XPASSED:
-                result.xpassed += 1
-            elif test.result == TestCase.XFAILED:
-                result.xfailed += 1
-            else:
-                result.skipped += 1
-
-            return result
-
-        def sequential_tests(tests, result):
-            for test in tests:
-                result = recursivly(test, result)
-
-            return result
-
-        def parallel_tests(tests, result):
-            for test in tests:
-                result = recursivly(test, result)
-
-            return result
-
-        def recursivly(tests, result):
-            if isinstance(tests, TestCase):
-                return test(tests, result)
-            elif isinstance(tests, list):
-                return sequential_tests(tests, result)
-            elif isinstance(tests, tuple):
-                return parallel_tests(tests, result)
-            else:
-                raise ValueError("bad type {}".format(type(tests)))
-
-        return recursivly(self.tests, Result())
-
-    def summary_test(self, test, indent):
-        """Returns a test case summary line.
-
-        """
-
-        fmt = ' ' * indent + test.name + ': {result}{message}'
-
-        if test.result:
-            result = test.result
-        else:
-            result = TestCase.SKIPPED
-
-        if test.message is None:
-            message = ''
-        else:
-            message = ' ({})'.format(test.message)
-
-        return fmt.format(result=result, message=message)
-
-    def summary(self):
-        """Compile the test execution summary and return it as a string.
-
-        """
-
-        def test(test, indent):
-            return [self.summary_test(test, indent)]
-
-        def sequential_tests(tests, indent):
-            return ['\n'.join([' ' * indent + '[',
-                               ',\n'.join(_flatten([recursivly(test, indent + 4)
-                                                    for test in tests])),
-                               ' ' * indent + ']'])]
-
-        def parallel_tests(tests, indent):
-            return ['\n'.join([' ' * indent + '(',
-                               ',\n'.join(_flatten([recursivly(test, indent + 4)
-                                                    for test in tests])),
-                               ' ' * indent + ')'])]
-
-        def recursivly(tests, indent):
-            if isinstance(tests, TestCase):
-                return test(tests, indent)
-            elif isinstance(tests, list):
-                return sequential_tests(tests, indent)
-            elif isinstance(tests, tuple):
-                return parallel_tests(tests, indent)
-            else:
-                raise ValueError("bad type {}".format(type(tests)))
-
-        summary = '\n'.join(recursivly(self.tests, 0))
-
-        result = self.summary_count()
-
-        return _SUMMARY_FMT.format(summary=summary,
-                                   execution_time=format_timespan(self.execution_time),
-                                   result=result)
-
-    def summary_json_test(self, test):
-        """Returns a test case summary ordered dictionary.
-
-        """
-
-        if test.result:
-            result = test.result
-            execution_time = format_timespan(test.execution_time)
-        else:
-            result = TestCase.SKIPPED
-            execution_time = None
-
-        summary = odict([
-            ('name', test.name),
-            ('description', trim_docstring(test.__doc__).splitlines()),
-            ('result', result),
-            ('execution_time', execution_time)
-        ])
-
-        if test.message is not None:
-            summary['message'] = test.message
-
-        return summary
-
-    def summary_json(self):
-        """Compile the test execution summary and return it as a JSON object.
-
-        """
-
-        def test(test):
-            return self.summary_json_test(test)
-
-        def sequential_tests(tests, testcases):
-            return [recursivly(test, testcases) for test in tests]
-
-        def parallel_tests(tests, testcases):
-            return [recursivly(test, testcases) for test in tests]
-
-        def recursivly(tests, testcases):
-            if isinstance(tests, TestCase):
-                testcases.append(test(tests))
-            elif isinstance(tests, list):
-                sequential_tests(tests, testcases)
-            elif isinstance(tests, tuple):
-                parallel_tests(tests, testcases)
-            else:
-                raise ValueError("bad type {}".format(type(tests)))
-
-        testcases = []
-        recursivly(self.tests, testcases)
-
-        return odict([
-            ('name', self.name),
-            ('date', str(datetime.datetime.now())),
-            ('node', platform.node()),
-            ('user', getpass.getuser()),
-            ('testcases', testcases)
-        ])
-
-    def dot_digraph(self):
-        """Create a graphviz dot digraph of given test sequence.
-
-        The slowest execution path has bold edges.
-
-        Use the program ``dot`` to create an image from the output of
-        this function.
-
-        ``dot -Tpng -Gdpi=200 -o mysequence.png mysequence.dot``
-
-        """
-
-        def get_start_parent(test):
-            start_time = -1.0
-            start_parent = None
-
-            for parent in test.parents:
-                if parent.finish_time > start_time:
-                    start_time = parent.finish_time
-                    start_parent = parent
-
-            return start_parent
-
-        def _test(parents, test):
-            test.parents = parents
-
-            if test.result:
-                test.start_parent = get_start_parent(test)
-                test.finish_time = test.start_parent.finish_time + test.execution_time
-
-                return [test]
-            else:
-                # Ignore tests that were not executed.
-                return parents
-
-        def sequential_tests(parents, tests):
-            for test in tests:
-                parents = recursivly(parents, test)
-
-            return parents
-
-        def parallel_tests(parents, tests):
-            return _flatten([recursivly(parents, test) for test in tests])
-
-        def recursivly(parents, tests):
-            if isinstance(tests, TestCase):
-                return _test(parents, tests)
-            elif isinstance(tests, list):
-                return sequential_tests(parents, tests)
-            elif isinstance(tests, tuple):
-                return parallel_tests(parents, tests)
-            else:
-                raise ValueError("bad type: {}".format(type(tests)))
-
-        class Edge(object):
-
-            def __init__(self, parent, test, style):
-                self.parent = parent
-                self.test = test
-                self.style = style
-
-            def __str__(self):
-                return ('    {parent_id} -> {test_id} [label="{parent_finish_time}"'
-                        ', style="{style}"];').format(
-                            parent_id=id(self.parent),
-                            test_id=id(self.test),
-                            parent_finish_time=format_timespan(self.parent.finish_time),
-                            style=self.style)
-
-        def edge_name(parent, test):
-            return '{}  ->  {}'.format(id(parent), id(test))
-
-        def edges_recursivly(edges, test, style):
-            # Take the slowest path first.
-            for parent in sorted(test.parents, key=lambda p: p.finish_time, reverse=True):
-                if edge_name(parent, test) in edges:
-                    continue
-
-                if (style == "bold") and (test.start_parent == parent):
-                    edges[edge_name(parent, test)] = Edge(parent, test, "bold")
-                    edges_recursivly(edges, parent, "bold")
-                else:
-                    edges[edge_name(parent, test)] = Edge(parent, test, "solid")
-                    edges_recursivly(edges, parent, "solid")
-
-        def deps_test(edges, test):
-            if test.result:
-                return [str(edges[edge_name(parent, test)])
-                        for parent in test.parents]
-            else:
-                return []
-
-        def deps_sequential_tests(edges, tests):
-            return _flatten([deps_recursivly(edges, test) for test in tests])
-
-        def deps_parallel_tests(edges, tests):
-            return _flatten([deps_recursivly(edges, test) for test in tests])
-
-        def deps_recursivly(edges, tests):
-            if isinstance(tests, TestCase):
-                return deps_test(edges, tests)
-            elif isinstance(tests, list):
-                return deps_sequential_tests(edges, tests)
-            elif isinstance(tests, tuple):
-                return deps_parallel_tests(edges, tests)
-            else:
-                raise ValueError("bad type: {}".format(type(tests)))
-
-        def nodes_test(test):
-            return ['    {} [label="{}"]'.format(id(test), test.name)]
-
-        def nodes_sequential_tests(tests):
-            return _flatten([nodes_recursivly(test) for test in tests])
-
-        def nodes_parallel_tests(tests):
-            return _flatten([nodes_recursivly(test) for test in tests])
-
-        def nodes_recursivly(tests):
-            if isinstance(tests, TestCase):
-                return nodes_test(tests)
-            elif isinstance(tests, list):
-                return nodes_sequential_tests(tests)
-            elif isinstance(tests, tuple):
-                return nodes_parallel_tests(tests)
-            else:
-                raise ValueError("bad type: {}".format(type(tests)))
-
-        # Create the begin test case node.
-        begin = TestCase("begin")
-        begin.result = TestCase.PASSED
-        begin.finish_time = 0.0
-
-        # Create the end test case node.
-        end = TestCase("end")
-        end.result = TestCase.PASSED
-        end.execution_time = 0.0
-
-        # Use begin as the parent of the first test case.
-        parents = [begin]
-
-        for test in self.tests + [end]:
-            parents = recursivly(parents, test)
-
-        # Bold edges in the slowest execution path.
-        edges = {}
-        edges_recursivly(edges, end, "bold")
-
-        deps = []
-
-        for test in [begin] + self.tests + [end]:
-            deps += deps_recursivly(edges, test)
-
-        nodes = []
-
-        for test in self.tests:
-            nodes += nodes_recursivly(test)
-
-        return _DIGRAPH_FMT.format(name=_make_filename(self.name),
-                                   begin_id=id(begin),
-                                   end_id=id(end),
-                                   nodes='\n'.join(nodes),
-                                   deps='\n'.join(deps))
-
-    def _report_json(self, basename):
-        filename_json = basename + ".json"
-
-        with open(filename_json, 'w') as fout:
-            fout.write(json.dumps(self.summary_json(), indent=4))
-
-    def _report_dot(self, basename):
-        filename_dot = basename + ".dot"
-        filename_png = basename + ".png"
-
-        with open(filename_dot, "w") as fout:
-            fout.write(self.dot_digraph())
-
-        try:
-            command = ["dot", "-Tpng", "-Gdpi=200", "-o", filename_png, filename_dot]
-            subprocess.check_call(command)
-        except subprocess.CalledProcessError:
-            print("Unable to create image from dot file '{}' using command '{}'".format(
-                filename_dot, ' '.join(command)))
-        except OSError:
-            print(("Unable to create image from dot file '{}'. Program 'dot' is not "
-                   "installed.").format(filename_dot))
-
-    def report(self):
-        """Print a summary and create a dot graph image.
-
-        """
-
-        log_lines(self.summary())
-
-        basename = _make_filename(self.name)
-
-        self._report_json(basename)
-        self._report_dot(basename)
 
 
 def _make_filename(text):
