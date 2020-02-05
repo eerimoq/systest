@@ -65,30 +65,32 @@ digraph {name} {{
 '''
 
 LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
 
 
-def configure_logging(filename=None):
-    """Configure the logging module to write output to the console and a
-    file. The file name is `filename-<date>.log` if `filename` is not
-    None, otherwise the file name is ``systest-<date>.log``.
+def enable_console_log():
+    """
+    Adds a stream to standard output to the test logger.
 
     The console log level is ``INFO``.
-
-    The file log level is ``DEBUG``.
-
     """
-
-    # Configure the logging module.
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
-
-    # Use the color formatter for console output.
     stdout_handler = logging.StreamHandler()
     stdout_handler.setFormatter(ColorFormatter())
     stdout_handler.setLevel(logging.INFO)
-    root_logger.addHandler(stdout_handler)
+    LOGGER.addHandler(stdout_handler)
 
-    # Add a prefix to entries written to file.
+
+def enable_file_log(filename=None):
+    """
+    Adds a stream to file to the test logger.
+
+    The file name is `filename-<date>.log` if `filename` is not
+    None, otherwise the file name is ``systest-<date>.log``.
+
+    The file log level is ``DEBUG``.
+
+    :param filename: Absolute or relative base for log file name.
+    """
     if not filename:
         filename = "systest"
 
@@ -105,7 +107,15 @@ def configure_logging(filename=None):
     file_handler = logging.FileHandler(filename, "w")
     file_handler.setFormatter(
         logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
-    root_logger.addHandler(file_handler)
+    LOGGER.addHandler(file_handler)
+
+
+def configure_logging(filename=None):
+    """
+    Adds both console and file outputs to the test logger.
+    """
+    enable_console_log()
+    enable_file_log()
 
 
 def log_lines(text):
