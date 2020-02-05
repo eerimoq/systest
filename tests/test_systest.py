@@ -44,6 +44,34 @@ from tests.testcases.custom_json_summary import CustomJsonSequencer
 from tests.testcases.custom_json_summary import CustomJsonTest
 
 
+TEXT_ONE = '''\
+First lines match
+Second line doesn't
+Third line pads   \t
+Fourth line fine
+'''
+
+TEXT_TWO = '''\
+First lines match
+Second line does not
+Third line pads
+Fourth line fine
+'''
+
+TEXT_EXPECT = '''\
+: Mismatch found:
+  First lines match
+- Second line doesn't
+?                  ^
++ Second line does not
+?                 + ^
+- Third line pads   \t
+?                ----
++ Third line pads
+  Fourth line fine\
+'''
+
+
 class SysTestTest(unittest.TestCase):
 
     def setUp(self):
@@ -330,27 +358,6 @@ class SysTestTest(unittest.TestCase):
 
         sequencer = Sequencer("failed_asserts")
 
-        TEXT_ONE = '''First lines match
-Second line doesn't
-Third line pads    
-Fourth line fine
-'''
-        TEXT_TWO = '''First lines match
-Second line does not
-Third line pads
-Fourth line fine
-'''
-        TEXT_EXPECT = ''': Mismatch found:
-  First lines match
-- Second line doesn't
-?                  ^
-+ Second line does not
-?                 + ^
-- Third line pads    
-?                ----
-+ Third line pads
-  Fourth line fine'''
-
         result = sequencer.run(
             AssertsEqualTest(1, 2),
             AssertsNotEqualTest(2, 2),
@@ -473,12 +480,6 @@ Fourth line fine
         """
 
         sequencer = Sequencer("passed_asserts")
-
-        TEXT_ONE = '''First lines match
-So does the second
-Even this line with trailing whitespace     
-Fourth line also fine
-'''
 
         result = sequencer.run(
             AssertsEqualTest(1, 1),

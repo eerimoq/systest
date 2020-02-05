@@ -297,25 +297,22 @@ class TestCase(object):
                                                   repr(second)))
 
     def assert_text_equal(self, first, second):
-        """
-        Raises an exception if ``first`` and ``second`` are not equal.
+        """Raises an exception if ``first`` and ``second`` are not equal.
 
         This is equivalent to ``assert_equal`` except it requires the
-        arguments to be multi-line strings. The description of the failure is
-        presented in the exception as a diff. This is an easier way to
-        determine what has gone wrong in multi-line text.
+        arguments to be multi-line strings. The description of the
+        failure is presented in the exception as a diff. This is an
+        easier way to determine what has gone wrong in multi-line
+        text.
 
-        :param first: Multi-line string
-        :param second: Multi-line string
-        :return: Nothing
-        :raises: TestCaseFailedError containing diff between strings.
         """
+
         if first != second:
             filename, line, _, _ = traceback.extract_stack()[-2]
             differ = difflib.Differ()
             diff = differ.compare(first.splitlines(), second.splitlines())
+            text = '\n'.join([diffline.rstrip('\n') for diffline in diff])
 
-            text = '\n'.join([line.rstrip('\n') for line in diff])
             raise TestCaseFailedError(
                 '{}:{}: Mismatch found:\n{}'.format(filename,
                                                     line,
