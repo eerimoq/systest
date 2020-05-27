@@ -18,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.6.0'
+__version__ = '5.7.0'
 
 
 _RUN_HEADER_FMT ='''
@@ -689,7 +689,7 @@ class Sequencer(object):
 
         """
 
-        fmt = ' ' * indent + test.name + ': {result}{message}'
+        fmt = ' ' * indent + test.name + ': {result}{duration}{message}'
 
         if test.result:
             result = test.result
@@ -701,7 +701,12 @@ class Sequencer(object):
         else:
             message = ' ({})'.format(test.message)
 
-        return fmt.format(result=result, message=message)
+        if test.execution_time is None:
+            duration = ''
+        else:
+            duration = ' in {}'.format(format_timespan(test.execution_time))
+
+        return fmt.format(result=result, duration=duration, message=message)
 
     def summary(self):
         """Compile the test execution summary and return it as a string.
