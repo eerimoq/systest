@@ -40,23 +40,14 @@ class MyTestCase(systest.TestCase):
 
         self.assert_equal(str(cm.exception), 'foo')
 
-# Configure the logging module.
-systest.configure_logging()
 
-sequencer = systest.Sequencer("my_sequence")
-
-# Run the sequence.
-sequencer.run([
-        MyTestCase("1"),
-        (
-            MyTestCase("2"),
-            [
-                MyTestCase("3"),
-                MyTestCase("4")
-            ]
-        ),
-        MyTestCase("5")
-    ])
-
-# Print the report.
-sequencer.report()
+systest.main("my_sequence",
+             MyTestCase("1"),
+             (
+                 MyTestCase("2"),
+                 [
+                     MyTestCase("3"),
+                     MyTestCase("4")
+                 ]
+             ),
+             MyTestCase("5"))

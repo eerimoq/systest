@@ -21,4 +21,6 @@ Classes
 .. autoclass:: systest.Sequencer
    :members:
 
+.. autofunction:: systest.main
+
 .. autofunction:: systest.configure_logging

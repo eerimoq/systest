@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import re
+import argparse
 import difflib
 import sys
 import os
@@ -18,7 +20,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.7.0'
+__version__ = '5.8.0'
 
 
 _RUN_HEADER_FMT ='''
@@ -68,8 +70,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 def configure_logging(filename=None,
-                      console_log_level=logging.INFO,
-                      file_log_level=logging.DEBUG):
+                      console_log_level=None,
+                      file_log_level=None):
     """Configure the logging module to write output to the console and a
     file. The file name is `filename-<date>.log` if `filename` is not
     None, otherwise the file name is ``systest-<date>.log``.
@@ -81,6 +83,12 @@ def configure_logging(filename=None,
     default.
 
     """
+
+    if console_log_level is None:
+        console_log_level = logging.INFO
+
+    if file_log_level is None:
+        file_log_level = logging.DEBUG
 
     # Configure the logging module.
     root_logger = logging.getLogger()
@@ -562,29 +570,24 @@ class Sequencer(object):
 
     def __init__(self,
                  name,
-                 testcase_filter=None,
-                 testcase_skip_filter=None,
+                 testcase_pattern=None,
                  dry_run=False,
                  force_serial_execution=False):
         self.name = name
         self.dry_run = dry_run
         self.tests = None
         self.execution_time = 0.0
-        self.testcase_filter = testcase_filter
-        self.testcase_skip_filter = testcase_skip_filter
+        self.testcase_pattern = testcase_pattern
         self.force_serial_execution = force_serial_execution
         self.continue_on_failure = True
         self.run_failed = False
 
     def is_testcase_enabled(self, test):
-        enabled = True
 
-        if self.testcase_filter is not None:
-            enabled = test.name in self.testcase_filter
-
-        if enabled:
-            if self.testcase_skip_filter is not None:
-                enabled = test.name not in self.testcase_skip_filter
+        if self.testcase_pattern is None:
+            enabled = True
+        else:
+            enabled = bool(re.search(self.testcase_pattern, test.name))
 
         return enabled
 
@@ -1200,3 +1203,38 @@ def _log_traceback():
     for entry in traceback.format_exception(*sys.exc_info()):
         for line in entry.splitlines():
             LOGGER.error(line.rstrip())
+
+
+def main(name, *tests, **kwargs):
+    """Run given tests `tests` from the command line.
+
+    Use `console_log_level` to set the console log level.
+
+    Use `file_log_level` to set the file log level.
+
+    """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--no-continue-on-failure',
+                        action='store_true',
+                        help='Do not continue on test failure.')
+    parser.add_argument(
+        'test_pattern',
+        metavar='test-pattern',
+        nargs='?',
+        help="Only run tests matching given regular expression pattern.")
+
+    args = parser.parse_args()
+
+    if not os.path.exists('logs'):
+        os.mkdir('logs')
+
+    configure_logging('logs/{}'.format(name),
+                      console_log_level=kwargs.get('console_log_level'),
+                      file_log_level=kwargs.get('file_log_level'))
+
+    sequencer = Sequencer(name, testcase_pattern=args.test_pattern)
+    _, failed, _ = sequencer.run(*tests)
+    sequencer.report()
+
+    sys.exit(failed)

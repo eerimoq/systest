@@ -38,12 +38,12 @@ executed. Then the sequence ends.
 .. code-block:: python
 
    import logging
-   from systest import TestCase, Sequencer, configure_logging
+   import systest
 
    LOGGER = logging.getLogger(__name__)
 
    # Define a testcase.
-   class MyTestCase(TestCase):
+   class MyTestCase(systest.TestCase):
        """Test case description.
 
        """
@@ -64,26 +64,16 @@ executed. Then the sequence ends.
 
            self.assert_equal(str(cm.exception), 'foo')
 
-   # Configure the logging module.
-   configure_logging()
-
-   sequencer = Sequencer("my_sequence")
-
-   # Run the sequence.
-   sequencer.run([
-           MyTestCase("1"),
-           (
-               MyTestCase("2"),
-               [
-                   MyTestCase("3"),
-                   MyTestCase("4")
-               ]
-           ),
-           MyTestCase("5")
-       ])
-
-   # Print the report.
-   sequencer.report()
+   main("my_sequence",
+        MyTestCase("1"),
+        (
+            MyTestCase("2"),
+            [
+                MyTestCase("3"),
+                MyTestCase("4")
+            ]
+        ),
+        MyTestCase("5"))
 
 The output is:
 

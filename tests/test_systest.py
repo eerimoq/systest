@@ -260,17 +260,14 @@ class SysTestTest(unittest.TestCase):
 
         self.assert_result(result, Result(17, 0, 0))
 
-    def test_testcase_filter(self):
-        """Use the test execution filter to run a specific testcase in a
+    def test_testcase_pattern(self):
+        """Use the test execution pattern to run a specific testcase in a
         sequence.
 
         """
 
-        # A testcase in `testcase_skip_filter` will be skipped even if it is
-        # in `testcase_filter`.
-        sequencer = Sequencer("filter",
-                              testcase_filter=["fail_1", "test_b", "test_d"],
-                              testcase_skip_filter=["fail_1"])
+        sequencer = Sequencer("pattern",
+                              testcase_pattern="^test_b$")
 
         result = sequencer.run(
             FailTest("1"),
@@ -287,8 +284,8 @@ class SysTestTest(unittest.TestCase):
 
         sequencer.report()
 
-        self.assert_result(result, Result(2, 0, 4))
-        self.assertEqual(NamedTest.count, 2)
+        self.assert_result(result, Result(1, 0, 5))
+        self.assertEqual(NamedTest.count, 1)
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 0)
 
