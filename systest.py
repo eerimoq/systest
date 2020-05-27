@@ -18,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.5.0'
+__version__ = '5.6.0'
 
 
 _RUN_HEADER_FMT ='''
@@ -67,14 +67,18 @@ digraph {name} {{
 LOGGER = logging.getLogger(__name__)
 
 
-def configure_logging(filename=None):
+def configure_logging(filename=None,
+                      console_log_level=logging.INFO,
+                      file_log_level=logging.DEBUG):
     """Configure the logging module to write output to the console and a
     file. The file name is `filename-<date>.log` if `filename` is not
     None, otherwise the file name is ``systest-<date>.log``.
 
-    The console log level is ``INFO``.
+    Use `console_log_level` to set the console log level. It is
+    ``INFO`` by default.
 
-    The file log level is ``DEBUG``.
+    Use `file_log_level` to set the file log level. It is ``DEBUG`` by
+    default.
 
     """
 
@@ -85,7 +89,7 @@ def configure_logging(filename=None):
     # Use the color formatter for console output.
     stdout_handler = logging.StreamHandler()
     stdout_handler.setFormatter(ColorFormatter())
-    stdout_handler.setLevel(logging.INFO)
+    stdout_handler.setLevel(console_log_level)
     root_logger.addHandler(stdout_handler)
 
     # Add a prefix to entries written to file.
@@ -105,6 +109,7 @@ def configure_logging(filename=None):
     file_handler = logging.FileHandler(filename, "w")
     file_handler.setFormatter(
         logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
+    file_handler.setLevel(file_log_level)
     root_logger.addHandler(file_handler)
 
 
