@@ -16,5 +16,5 @@ class SkipTest(systest.TestCase):
     def run(self):
         SkipTest.count += 1
 
-        raise systest.SequencerTestSkippedError(self.message)
+        raise systest.TestCaseSkippedError(self.message)
 

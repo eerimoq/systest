@@ -216,11 +216,6 @@ class TestCaseXFailedError(Exception):
     pass
 
 
-# Deprecated. To be removed.
-SequencerTestFailedError = TestCaseFailedError
-SequencerTestSkippedError = TestCaseSkippedError
-
-
 class TestCase(object):
     """Base class of a test case executed by the sequencer.
 
