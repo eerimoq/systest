@@ -64,16 +64,20 @@ executed. Then the sequence ends.
 
            self.assert_equal(str(cm.exception), 'foo')
 
-   main("my_sequence",
-        MyTestCase("1"),
-        (
-            MyTestCase("2"),
-            [
-                MyTestCase("3"),
-                MyTestCase("4")
-            ]
-        ),
-        MyTestCase("5"))
+
+   sequencer = systest.setup("my_sequence")
+
+   sequencer.run(MyTestCase("1"),
+                 (
+                     MyTestCase("2"),
+                     [
+                         MyTestCase("3"),
+                         MyTestCase("4")
+                     ]
+                 ),
+                 MyTestCase("5"))
+
+   sequencer.report_and_exit()
 
 The output is:
 

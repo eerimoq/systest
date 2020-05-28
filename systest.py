@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import re
 import argparse
 import difflib
@@ -20,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.8.0'
+__version__ = '5.9.0'
 
 
 _RUN_HEADER_FMT ='''
@@ -1006,6 +1004,16 @@ class Sequencer(object):
         self._report_json(basename)
         self._report_dot(basename)
 
+    def report_and_exit(self):
+        self.report()
+
+        if self.run_failed:
+            exit_code = 1
+        else:
+            exit_code = 0
+
+        sys.exit(exit_code)
+
 
 def _make_filename(text):
     result = ""
@@ -1205,8 +1213,16 @@ def _log_traceback():
             LOGGER.error(line.rstrip())
 
 
-def main(name, *tests, **kwargs):
-    """Run given tests `tests` from the command line.
+def setup(name,
+          parser=None,
+          console_log_level=None,
+          file_log_level=None):
+    """Basic setup of a test program. Parses command line arguments,
+    configures logging and creates a sequencer called `name`. Returns
+    the sequencer.
+
+    Give `parser` to use a custom argument parser. This functions
+    appends its arguments to it.
 
     Use `console_log_level` to set the console log level.
 
@@ -1214,7 +1230,9 @@ def main(name, *tests, **kwargs):
 
     """
 
-    parser = argparse.ArgumentParser()
+    if parser is None:
+        parser = argparse.ArgumentParser()
+
     parser.add_argument('-c', '--no-continue-on-failure',
                         action='store_true',
                         help='Do not continue on test failure.')
@@ -1229,12 +1247,8 @@ def main(name, *tests, **kwargs):
     if not os.path.exists('logs'):
         os.mkdir('logs')
 
-    configure_logging('logs/{}'.format(name),
-                      console_log_level=kwargs.get('console_log_level'),
-                      file_log_level=kwargs.get('file_log_level'))
+    configure_logging('logs/{}'.format(name.replace(' ', '-')),
+                      console_log_level=console_log_level,
+                      file_log_level=file_log_level)
 
-    sequencer = Sequencer(name, testcase_pattern=args.test_pattern)
-    _, failed, _ = sequencer.run(*tests)
-    sequencer.report()
-
-    sys.exit(failed)
+    return Sequencer(name, testcase_pattern=args.test_pattern)

@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 import json
 
 import systest
@@ -639,6 +640,35 @@ class SysTestTest(unittest.TestCase):
                     "data": "foo"
                 }
             ])
+
+    def test_setup_report_and_exit(self):
+        argv = [
+            'suite',
+            '_a'
+        ]
+
+        with patch('sys.argv', argv):
+            sequencer = systest.setup("My Sequence")
+            result = sequencer.run(NamedTest("a"), NamedTest("b"))
+
+            with self.assertRaises(SystemExit) as cm:
+                sequencer.report_and_exit()
+
+            self.assertEqual(cm.exception.code, 0)
+
+    def test_setup_report_and_exit_error(self):
+        argv = [
+            'suite'
+        ]
+
+        with patch('sys.argv', argv):
+            sequencer = systest.setup("My Sequence")
+            result = sequencer.run(FailTest("a"))
+
+            with self.assertRaises(SystemExit) as cm:
+                sequencer.report_and_exit()
+
+            self.assertEqual(cm.exception.code, 1)
 
 
 systest.configure_logging()
