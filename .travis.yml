@@ -13,3 +13,17 @@ script:
 
 after_success:
   coveralls
+
+before_deploy:
+  - git clean -dfx
+
+deploy:
+  provider: pypi
+  username: __token__
+  password:
+    secure: ieznypjKU/wlVhuUkhq4jZhch2ihcAb96Ium2k4B71HgvYQPOqd8Pi7+7eM2UT2WgYp6jJh1HZEOlfaz9E37L9Q/TVOESyFJCoAK3MNhtplqEiXo0ekT2ntWEf1WtZkXA1lRG7NxpPQPLSUQ9k7J62ZCesaVUyg7ZfhJcMybv2CcinMiKt6ExKhD/V6ah2Xdj5rODXGQyHMmfEd4DHLwDIaCAEZye3f5+wjZfrwspJ1gyBAVLyEI6xmUqtFM6JlbGgQ7KBtiTV5vT1XTQzOnOkPlSzAOWbBE3gh1cAGkBKryuDwAcdVzZ/6fZCdXbTLa8/oo0MkbBUHTB1ZVw7OMr2lb6Wmv06PPMLEKpA/C4c+qy+bMF9doxK7DD5t8huToi5MKyyPj91J0gXc4on8kCQ+sEI0nD8fTEn6tguKRHW/euMIQLG6xzAGk3JKqRvrQRgYGM63ZAm9dGB2nX+6Au/HwRr87a3HAeSsMX5RNNWffbqIUGe8fknDcP+9w1be+rbCHFhblms1tk0z/1dgsLGQTO6VRUj+pYlvbjLbdhf6wAKmqS4VWQPUMKR0Nku7mw72DbtVaOx/f3Xf+1NOaOkn9AtsX1Atq0XbQLIzjTtR2yKIM3FggyRqpLMED9Lryef/9+RVvlV3M5dJtLB05fN07A7SVDcQzg4m2aU/2Qps=
+  edge: true
+  skip_existing: true
+  on:
+    tags: true
+  distributions: "sdist bdist_wheel"
