@@ -84,8 +84,8 @@ The output is:
 .. code-block:: text
 
    Name: my_sequence
-   Date: 2016-02-02 18:42:40.446213
-   Node: erik-VirtualBox
+   Date: 2020-05-30 11:41:49.712832
+   Node: erik-GR8
    User: erik
 
    ---------------------------------------------------------------
@@ -97,7 +97,7 @@ The output is:
 
    Hello!
 
-   my_testcase_1: PASSED in 0m 0s
+   my_testcase_1: PASSED in 0 seconds
 
    ---------------------------------------------------------------
 
@@ -108,7 +108,7 @@ The output is:
 
    Hello!
 
-   my_testcase_2: PASSED in 0m 0s
+   my_testcase_2: PASSED in 0 seconds
 
    ---------------------------------------------------------------
 
@@ -119,7 +119,7 @@ The output is:
 
    Hello!
 
-   my_testcase_3: PASSED in 0m 0s
+   my_testcase_3: PASSED in 0 seconds
 
    ---------------------------------------------------------------
 
@@ -130,7 +130,7 @@ The output is:
 
    Hello!
 
-   my_testcase_4: PASSED in 0m 0s
+   my_testcase_4: PASSED in 0 seconds
 
    ---------------------------------------------------------------
 
@@ -141,26 +141,24 @@ The output is:
 
    Hello!
 
-   my_testcase_5: PASSED in 0m 0s
+   my_testcase_5: PASSED in 0 seconds
 
    ---------------------- Test summary begin ----------------------
 
    [
-       [
-           my_testcase_1: PASSED,
-           (
-               my_testcase_2: PASSED,
-               [
-                   my_testcase_3: PASSED,
-                   my_testcase_4: PASSED
-               ]
-           ),
-           my_testcase_5: PASSED
-       ]
+       my_testcase_1: PASSED in 0 seconds,
+       (
+           my_testcase_2: PASSED in 0 seconds,
+           [
+               my_testcase_3: PASSED in 0 seconds,
+               my_testcase_4: PASSED in 0 seconds
+           ]
+       ),
+       my_testcase_5: PASSED in 0 seconds
    ]
 
-   Execution time: 0m 0s
-   Result: PASSED (passed: 5, failed: 0, skipped: 0, xpassed: 0, xfailed: 0)
+   Execution time: 0.02 seconds
+   Result: PASSED (5 passed, 5 total)
 
    ----------------------- Test summary end -----------------------
 
