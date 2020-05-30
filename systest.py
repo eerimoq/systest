@@ -102,8 +102,7 @@ def configure_logging(filename=None,
     if not filename:
         filename = "systest"
 
-    filename = "{}-{}.log".format(filename,
-                                  _make_filename(str(datetime.datetime.now())))
+    filename = f"{filename}-{_make_filename(str(datetime.datetime.now()))}.log"
 
     # Create any missing parent log file folders.
     dirname = os.path.dirname(filename)
@@ -283,10 +282,7 @@ class TestCase(object):
             filename, line, _, _ = traceback.extract_stack()[-2]
 
             raise TestCaseFailedError(
-                '{}:{}: {} is not equal to {}'.format(filename,
-                                                      line,
-                                                      repr(first),
-                                                      repr(second)))
+                f'{filename}:{line}: {first!r} is not equal to {second!r}')
 
     def assert_not_equal(self, first, second):
         """Raise an exception if ``first`` and ``second`` are equal.
@@ -297,10 +293,7 @@ class TestCase(object):
             filename, line, _, _ = traceback.extract_stack()[-2]
 
             raise TestCaseFailedError(
-                '{}:{}: {} is equal to {}'.format(filename,
-                                                  line,
-                                                  repr(first),
-                                                  repr(second)))
+                f'{filename}:{line}: {first!r} is equal to {second!r}')
 
     def assert_text_equal(self, first, second):
         """Raises an exception if ``first`` and ``second`` are not equal.
@@ -319,10 +312,7 @@ class TestCase(object):
             diff = differ.compare(first.splitlines(), second.splitlines())
             text = '\n'.join([diffline.rstrip('\n') for diffline in diff])
 
-            raise TestCaseFailedError(
-                '{}:{}: Mismatch found:\n{}'.format(filename,
-                                                    line,
-                                                    text))
+            raise TestCaseFailedError(f'{filename}:{line}: Mismatch found:\n{text}')
 
     def assert_true(self, condition):
         """Raise an exception if given condition `condition` is false.
@@ -332,9 +322,7 @@ class TestCase(object):
         if not condition:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise TestCaseFailedError('{}:{}: {} is not true'.format(filename,
-                                                                     line,
-                                                                     condition))
+            raise TestCaseFailedError(f'{filename}:{line}: {condition} is not true')
 
     def assert_false(self, condition):
         """Raise an exception if given condition `condition` is true.
@@ -344,9 +332,7 @@ class TestCase(object):
         if condition:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise TestCaseFailedError('{}:{}: {} is not false'.format(filename,
-                                                                      line,
-                                                                      condition))
+            raise TestCaseFailedError(f'{filename}:{line}: {condition} is not false')
 
     def assert_in(self, member, container):
         """Raise an exception if given member `member` is not found in given
@@ -358,10 +344,7 @@ class TestCase(object):
             filename, line, _, _ = traceback.extract_stack()[-2]
 
             raise TestCaseFailedError(
-                '{}:{}: {} not found in {}'.format(filename,
-                                                   line,
-                                                   repr(member),
-                                                   repr(container)))
+                f'{filename}:{line}: {member!r} not found in {container!r}')
 
     def assert_not_in(self, member, container):
         """Raise an exception if given member `member` is found in given
@@ -373,10 +356,7 @@ class TestCase(object):
             filename, line, _, _ = traceback.extract_stack()[-2]
 
             raise TestCaseFailedError(
-                '{}:{}: {} found in {}'.format(filename,
-                                               line,
-                                               repr(member),
-                                               repr(container)))
+                f'{filename}:{line}: {member!r} found in {container!r}')
 
     def assert_is_none(self, obj):
         """Raise an exception if given object `obj` is not None.
@@ -386,10 +366,7 @@ class TestCase(object):
         if obj is not None:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise TestCaseFailedError(
-                '{}:{}: {} is not None'.format(filename,
-                                               line,
-                                               repr(obj)))
+            raise TestCaseFailedError(f'{filename}:{line}: {obj!r} is not None')
 
     def assert_is_not_none(self, obj):
         """Raise an exception if given object `obj` is None.
@@ -399,10 +376,7 @@ class TestCase(object):
         if obj is None:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise TestCaseFailedError(
-                '{}:{}: {} is None'.format(filename,
-                                           line,
-                                           repr(obj)))
+            raise TestCaseFailedError(f'{filename}:{line}: {obj!r} is None')
 
     def assert_greater(self, first, second):
         """Raise an exception if ``first`` is not greater than ``second``.
@@ -413,10 +387,7 @@ class TestCase(object):
             filename, line, _, _ = traceback.extract_stack()[-2]
 
             raise TestCaseFailedError(
-                '{}:{}: {} is not greater than {}'.format(filename,
-                                                          line,
-                                                          repr(first),
-                                                          repr(second)))
+                f'{filename}:{line}: {first!r} is not greater than {second!r}')
 
     def assert_greater_equal(self, first, second):
         """Raise an exception if ``first`` is not greater than or equal to
@@ -428,10 +399,8 @@ class TestCase(object):
             filename, line, _, _ = traceback.extract_stack()[-2]
 
             raise TestCaseFailedError(
-                '{}:{}: {} is not greater than or equal to {}'.format(filename,
-                                                                      line,
-                                                                      repr(first),
-                                                                      repr(second)))
+                f'{filename}:{line}: {first!r} is not greater than or equal to '
+                f'{second!r}')
 
     def assert_less(self, first, second):
         """Raise an exception if ``first`` is not less than ``second``.
@@ -442,10 +411,7 @@ class TestCase(object):
             filename, line, _, _ = traceback.extract_stack()[-2]
 
             raise TestCaseFailedError(
-                '{}:{}: {} is not less than {}'.format(filename,
-                                                       line,
-                                                       repr(first),
-                                                       repr(second)))
+                f'{filename}:{line}: {first!r} is not less than {second!r}')
 
     def assert_less_equal(self, first, second):
         """Raise an exception if ``first`` is not less than or equal to
@@ -457,10 +423,8 @@ class TestCase(object):
             filename, line, _, _ = traceback.extract_stack()[-2]
 
             raise TestCaseFailedError(
-                '{}:{}: {} is not less than or equal to {}'.format(filename,
-                                                                   line,
-                                                                   repr(first),
-                                                                   repr(second)))
+                f'{filename}:{line}: {first!r} is not less than or equal to '
+                f'{second!r}')
 
     def assert_raises(self, expected_type, expected_message=None):
         """Raise an exception if no exception of given type(s) or subclass of
@@ -491,7 +455,7 @@ class TestCase(object):
                         ])
 
                     raise TestCaseFailedError(
-                        '{}:{}: {} not raised'.format(filename, line, name))
+                        f'{filename}:{line}: {name} not raised')
                 elif issubclass(exception_type, self.expected_type):
                     # Python 2 and 3 compatibility.
                     try:
@@ -512,9 +476,7 @@ class TestCase(object):
         if obj is not None:
             filename, line, _, _ = traceback.extract_stack()[-2]
 
-            raise TestCaseFailedError('{}:{}: {} is not None'.format(filename,
-                                                                     line,
-                                                                     repr(obj)))
+            raise TestCaseFailedError(f'{filename}:{line}: {obj!r} is not None')
 
 
 class Result(object):
@@ -550,13 +512,9 @@ class Result(object):
         else:
             result = TestCase.PASSED
 
-        return ('{} (passed: {}, failed: {}, skipped: {}, xpassed: {}, '
-                'xfailed: {})').format(result,
-                                       self.passed,
-                                       self.failed,
-                                       self.skipped,
-                                       self.xpassed,
-                                       self.xfailed)
+        return (f'{result} (passed: {self.passed}, failed: {self.failed}, '
+                f'skipped: {self.skipped}, xpassed: {self.xpassed}, '
+                f'xfailed: {self.xfailed})')
 
 
 class Sequencer(object):
@@ -676,7 +634,7 @@ class Sequencer(object):
             elif isinstance(tests, tuple):
                 return parallel_tests(tests, result)
             else:
-                raise ValueError("bad type {}".format(type(tests)))
+                raise ValueError(f'bad type {type(tests)}')
 
         return recursivly(self.tests, Result())
 
@@ -695,12 +653,12 @@ class Sequencer(object):
         if test.message is None:
             message = ''
         else:
-            message = ' ({})'.format(test.message)
+            message = f' ({test.message})'
 
         if test.execution_time is None:
             duration = ''
         else:
-            duration = ' in {}'.format(format_timespan(test.execution_time))
+            duration = f' in {format_timespan(test.execution_time)}'
 
         return fmt.format(result=result, duration=duration, message=message)
 
@@ -732,7 +690,7 @@ class Sequencer(object):
             elif isinstance(tests, tuple):
                 return parallel_tests(tests, indent)
             else:
-                raise ValueError("bad type {}".format(type(tests)))
+                raise ValueError(f'bad type {type(tests)}')
 
         summary = '\n'.join(recursivly(self.tests, 0))
 
@@ -788,7 +746,7 @@ class Sequencer(object):
             elif isinstance(tests, tuple):
                 parallel_tests(tests, testcases)
             else:
-                raise ValueError("bad type {}".format(type(tests)))
+                raise ValueError(f'bad type {type(tests)}')
 
         testcases = []
         recursivly(self.tests, testcases)
@@ -853,7 +811,7 @@ class Sequencer(object):
             elif isinstance(tests, tuple):
                 return parallel_tests(parents, tests)
             else:
-                raise ValueError("bad type: {}".format(type(tests)))
+                raise ValueError(f'bad type {type(tests)}')
 
         class Edge(object):
 
@@ -907,7 +865,7 @@ class Sequencer(object):
             elif isinstance(tests, tuple):
                 return deps_parallel_tests(edges, tests)
             else:
-                raise ValueError("bad type: {}".format(type(tests)))
+                raise ValueError(f'bad type {type(tests)}')
 
         def nodes_test(test):
             return ['    {} [label="{}"]'.format(id(test), test.name)]
@@ -926,7 +884,7 @@ class Sequencer(object):
             elif isinstance(tests, tuple):
                 return nodes_parallel_tests(tests)
             else:
-                raise ValueError("bad type: {}".format(type(tests)))
+                raise ValueError(f'bad type {type(tests)}')
 
         # Create the begin test case node.
         begin = TestCase("begin")
@@ -981,11 +939,11 @@ class Sequencer(object):
             command = ["dot", "-Tpng", "-Gdpi=200", "-o", filename_png, filename_dot]
             subprocess.check_call(command)
         except subprocess.CalledProcessError:
-            print("Unable to create image from dot file '{}' using command '{}'".format(
-                filename_dot, ' '.join(command)))
+            print(f"Unable to create image from dot file '{filename_dot}' using "
+                  f"command '{' '.join(command)}'")
         except OSError:
-            print(("Unable to create image from dot file '{}'. Program 'dot' is not "
-                   "installed.").format(filename_dot))
+            print((f"Unable to create image from dot file '{filename_dot}'. Program "
+                   f"'dot' is not installed."))
 
     def report(self):
         """Print a summary and create a dot graph image.
@@ -1242,7 +1200,7 @@ def setup(name,
     if not os.path.exists('logs'):
         os.mkdir('logs')
 
-    configure_logging('logs/{}'.format(name.replace(' ', '-')),
+    configure_logging("logs/{name.replace(' ', '-')}",
                       console_log_level=console_log_level,
                       file_log_level=file_log_level)
 
