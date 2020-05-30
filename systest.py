@@ -481,12 +481,13 @@ class TestCase(object):
 
 class Result(object):
 
-    def __init__(self, passed=0, failed=0, skipped=0, xpassed=0, xfailed=0):
+    def __init__(self, passed=0, failed=0, skipped=0, xpassed=0, xfailed=0, total=0):
         self.passed = passed
         self.failed = failed
         self.skipped = skipped
         self.xpassed = xpassed
         self.xfailed = xfailed
+        self.total = total
 
     def __getitem__(self, index):
         # Deprecated.
@@ -507,14 +508,31 @@ class Result(object):
         yield self.skipped
 
     def __str__(self):
+        details = []
+
+        if self.passed > 0:
+            details.append(f'{self.passed} passed')
+
+        if self.failed > 0:
+            details.append(f'{self.failed} failed')
+
+        if self.skipped > 0:
+            details.append(f'{self.skipped} skipped')
+
+        if self.xpassed > 0:
+            details.append(f'{self.xpassed} xpassed')
+
+        if self.xfailed > 0:
+            details.append(f'{self.xfailed} xfailed')
+
+        details.append(f'{self.total} total')
+
         if self.failed > 0:
             result = TestCase.FAILED
         else:
             result = TestCase.PASSED
 
-        return (f'{result} (passed: {self.passed}, failed: {self.failed}, '
-                f'skipped: {self.skipped}, xpassed: {self.xpassed}, '
-                f'xfailed: {self.xfailed})')
+        return f"{result} ({', '.join(details)})"
 
 
 class Sequencer(object):
@@ -611,6 +629,8 @@ class Sequencer(object):
                 result.xfailed += 1
             else:
                 result.skipped += 1
+
+            result.total += 1
 
             return result
 
