@@ -18,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.12.0'
+__version__ = '5.12.1'
 
 
 _RUN_HEADER_FMT ='''
@@ -1220,7 +1220,7 @@ def setup(name,
     if not os.path.exists('logs'):
         os.mkdir('logs')
 
-    configure_logging("logs/{name.replace(' ', '-')}",
+    configure_logging(f"logs/{name.replace(' ', '-')}",
                       console_log_level=console_log_level,
                       file_log_level=file_log_level)
 
