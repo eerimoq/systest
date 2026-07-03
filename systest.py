@@ -18,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.12.1'
+__version__ = '5.13.0'
 
 
 _RUN_HEADER_FMT ='''
