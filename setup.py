@@ -1,12 +1,18 @@
 #!/usr/bin/env python
 
 from setuptools import setup
-import systest
+import re
+
+
+def find_version():
+    return re.search(r"^__version__ = '(.*)'$",
+                     open('systest.py', 'r').read(),
+                     re.MULTILINE).group(1)
 
 
 if __name__ == "__main__":
     setup(name='systest',
-          version=systest.__version__,
+          version=find_version(),
           description=('System test framework with serial and parallel execution.'),
           long_description=open('README.rst', 'r').read(),
           author='Erik Moqvist',
