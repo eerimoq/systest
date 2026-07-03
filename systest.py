@@ -18,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.13.0'
+__version__ = '5.14.0'
 
 
 _RUN_HEADER_FMT ='''
@@ -69,10 +69,12 @@ LOGGER = logging.getLogger(__name__)
 
 def configure_logging(filename=None,
                       console_log_level=None,
-                      file_log_level=None):
+                      file_log_level=None,
+                      add_date=True):
     """Configure the logging module to write output to the console and a
     file. The file name is `filename-<date>.log` if `filename` is not
-    None, otherwise the file name is ``systest-<date>.log``.
+    None, otherwise the file name is ``systest-<date>.log``. Set `add_date`
+    to False to not add the date to the file name.
 
     Use `console_log_level` to set the console log level. It is
     ``INFO`` by default.
@@ -102,7 +104,10 @@ def configure_logging(filename=None,
     if not filename:
         filename = "systest"
 
-    filename = f"{filename}-{_make_filename(str(datetime.datetime.now()))}.log"
+    if add_date:
+        filename = f"{filename}-{_make_filename(str(datetime.datetime.now()))}.log"
+    else:
+        filename = f"{filename}.log"
 
     # Create any missing parent log file folders.
     dirname = os.path.dirname(filename)
@@ -1189,7 +1194,8 @@ def _log_traceback():
 def setup(name,
           parser=None,
           console_log_level=None,
-          file_log_level=None):
+          file_log_level=None,
+          add_date_to_log_filename=True):
     """Basic setup of a test program. Parses command line arguments,
     configures logging and creates a sequencer called `name`. Returns
     the sequencer.
@@ -1200,6 +1206,8 @@ def setup(name,
     Use `console_log_level` to set the console log level.
 
     Use `file_log_level` to set the file log level.
+
+    Give `add_date_to_log_filename` as False to not add the date to the log file name.
 
     """
 
@@ -1222,6 +1230,7 @@ def setup(name,
 
     configure_logging(f"logs/{name.replace(' ', '-')}",
                       console_log_level=console_log_level,
-                      file_log_level=file_log_level)
+                      file_log_level=file_log_level,
+                      add_date=add_date_to_log_filename)
 
     return Sequencer(name, testcase_pattern=args.test_pattern)
