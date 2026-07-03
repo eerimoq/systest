@@ -18,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.14.0'
+__version__ = '5.15.0'
 
 
 _RUN_HEADER_FMT ='''
@@ -200,6 +200,11 @@ class ColorFormatter(logging.Formatter):
         formatted = formatted.replace(" SKIPPED", ' \033[0;33mSKIPPED\033[0m')
         formatted = formatted.replace(" XPASSED", ' \033[0;36mXPASSED\033[0m')
         formatted = formatted.replace(" XFAILED", ' \033[0;36mXFAILED\033[0m')
+
+        if record.levelno >= logging.ERROR:
+            formatted = f"\033[0;31m{formatted}\033[0m"
+        elif record.levelno >= logging.WARNING:
+            formatted = f"\033[0;33m{formatted}\033[0m"
 
         return formatted
 
