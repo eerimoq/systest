@@ -18,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.15.0'
+__version__ = '5.16.0'
 
 
 _RUN_HEADER_FMT ='''
@@ -283,29 +283,25 @@ class TestCase(object):
 
         return 0.0
 
-    def assert_equal(self, first, second):
+    def assert_equal(self, first, second, message=None):
         """Raise an exception if ``first`` and ``second`` are not equal.
 
         """
 
         if first != second:
-            filename, line, _, _ = traceback.extract_stack()[-2]
-
             raise TestCaseFailedError(
-                f'{filename}:{line}: {first!r} is not equal to {second!r}')
+                _format_error(f'{first!r} is not equal to {second!r}', message))
 
-    def assert_not_equal(self, first, second):
+    def assert_not_equal(self, first, second, message=None):
         """Raise an exception if ``first`` and ``second`` are equal.
 
         """
 
         if first == second:
-            filename, line, _, _ = traceback.extract_stack()[-2]
-
             raise TestCaseFailedError(
-                f'{filename}:{line}: {first!r} is equal to {second!r}')
+                _format_error(f'{first!r} is equal to {second!r}', message))
 
-    def assert_text_equal(self, first, second):
+    def assert_text_equal(self, first, second, message=None):
         """Raises an exception if ``first`` and ``second`` are not equal.
 
         This is equivalent to ``assert_equal`` except it requires the
@@ -317,126 +313,103 @@ class TestCase(object):
         """
 
         if first != second:
-            filename, line, _, _ = traceback.extract_stack()[-2]
             differ = difflib.Differ()
             diff = differ.compare(first.splitlines(), second.splitlines())
             text = '\n'.join([diffline.rstrip('\n') for diffline in diff])
 
-            raise TestCaseFailedError(f'{filename}:{line}: Mismatch found:\n{text}')
+            raise TestCaseFailedError(_format_error(f'Mismatch found:\n{text}', message))
 
-    def assert_true(self, condition):
+    def assert_true(self, condition, message=None):
         """Raise an exception if given condition `condition` is false.
 
         """
 
         if not condition:
-            filename, line, _, _ = traceback.extract_stack()[-2]
+            raise TestCaseFailedError(_format_error(f'{condition} is not true', message))
 
-            raise TestCaseFailedError(f'{filename}:{line}: {condition} is not true')
-
-    def assert_false(self, condition):
+    def assert_false(self, condition, message=None):
         """Raise an exception if given condition `condition` is true.
 
         """
 
         if condition:
-            filename, line, _, _ = traceback.extract_stack()[-2]
+            raise TestCaseFailedError(_format_error(f'{condition} is not false', message))
 
-            raise TestCaseFailedError(f'{filename}:{line}: {condition} is not false')
-
-    def assert_in(self, member, container):
+    def assert_in(self, member, container, message=None):
         """Raise an exception if given member `member` is not found in given
         container `container`.
 
         """
 
         if member not in container:
-            filename, line, _, _ = traceback.extract_stack()[-2]
-
             raise TestCaseFailedError(
-                f'{filename}:{line}: {member!r} not found in {container!r}')
+                _format_error(f'{member!r} not found in {container!r}', message))
 
-    def assert_not_in(self, member, container):
+    def assert_not_in(self, member, container, message=None):
         """Raise an exception if given member `member` is found in given
         container `container`.
 
         """
 
         if member in container:
-            filename, line, _, _ = traceback.extract_stack()[-2]
-
             raise TestCaseFailedError(
-                f'{filename}:{line}: {member!r} found in {container!r}')
+                _format_error(f'{member!r} found in {container!r}', message))
 
-    def assert_is_none(self, obj):
+    def assert_is_none(self, obj, message=None):
         """Raise an exception if given object `obj` is not None.
 
         """
 
         if obj is not None:
-            filename, line, _, _ = traceback.extract_stack()[-2]
+            raise TestCaseFailedError(_format_error(f'{obj!r} is not None', message))
 
-            raise TestCaseFailedError(f'{filename}:{line}: {obj!r} is not None')
-
-    def assert_is_not_none(self, obj):
+    def assert_is_not_none(self, obj, message=None):
         """Raise an exception if given object `obj` is None.
 
         """
 
         if obj is None:
-            filename, line, _, _ = traceback.extract_stack()[-2]
+            raise TestCaseFailedError(_format_error(f'{obj!r} is None', message))
 
-            raise TestCaseFailedError(f'{filename}:{line}: {obj!r} is None')
-
-    def assert_greater(self, first, second):
+    def assert_greater(self, first, second, message=None):
         """Raise an exception if ``first`` is not greater than ``second``.
 
         """
 
         if first <= second:
-            filename, line, _, _ = traceback.extract_stack()[-2]
-
             raise TestCaseFailedError(
-                f'{filename}:{line}: {first!r} is not greater than {second!r}')
+                _format_error(f'{first!r} is not greater than {second!r}', message))
 
-    def assert_greater_equal(self, first, second):
+    def assert_greater_equal(self, first, second, message=None):
         """Raise an exception if ``first`` is not greater than or equal to
         ``second``.
 
         """
 
         if first < second:
-            filename, line, _, _ = traceback.extract_stack()[-2]
-
             raise TestCaseFailedError(
-                f'{filename}:{line}: {first!r} is not greater than or equal to '
-                f'{second!r}')
+                _format_error(f'{first!r} is not greater than or equal to {second!r}', message))
 
-    def assert_less(self, first, second):
+    def assert_less(self, first, second, message=None):
         """Raise an exception if ``first`` is not less than ``second``.
 
         """
 
         if first >= second:
-            filename, line, _, _ = traceback.extract_stack()[-2]
-
             raise TestCaseFailedError(
-                f'{filename}:{line}: {first!r} is not less than {second!r}')
+                _format_error(f'{first!r} is not less than {second!r}', message))
 
-    def assert_less_equal(self, first, second):
+    def assert_less_equal(self, first, second, message=None):
         """Raise an exception if ``first`` is not less than or equal to
         ``second``.
 
         """
 
         if first > second:
-            filename, line, _, _ = traceback.extract_stack()[-2]
-
             raise TestCaseFailedError(
-                f'{filename}:{line}: {first!r} is not less than or equal to '
-                f'{second!r}')
+                _format_error(f'{first!r} is not less than or equal to {second!r}', message))
 
-    def assert_raises(self, expected_type, expected_message=None):
+    def assert_raises(self, expected_type, expected_message=None, message=None):
         """Raise an exception if no exception of given type(s) or subclass of
         given type(s) `expected_type` is raised.
 
@@ -454,8 +427,6 @@ class TestCase(object):
 
             def __exit__(self, exception_type, exception_value, tb):
                 if exception_type is None:
-                    filename, line, _, _ = traceback.extract_stack()[-2]
-
                     try:
                         name = self.expected_type.__name__
                     except AttributeError:
@@ -464,8 +435,8 @@ class TestCase(object):
                             for expected_type in self.expected_type
                         ])
 
-                    raise TestCaseFailedError(
-                        f'{filename}:{line}: {name} not raised')
+
+                    raise TestCaseFailedError(_format_error(f'{name} not raised', message))
                 elif issubclass(exception_type, self.expected_type):
                     # Python 2 and 3 compatibility.
                     try:
@@ -478,15 +449,13 @@ class TestCase(object):
 
         return AssertRaises(expected_type, expected_message)
 
-    def assert_none(self, obj):
+    def assert_none(self, obj, message=None):
         """Raise an exception if given object `obj` is not None.
 
         """
 
         if obj is not None:
-            filename, line, _, _ = traceback.extract_stack()[-2]
-
-            raise TestCaseFailedError(f'{filename}:{line}: {obj!r} is not None')
+            raise TestCaseFailedError(_format_error(f'{obj!r} is not None', message))
 
 
 class Result(object):
@@ -1239,3 +1208,12 @@ def setup(name,
                       add_date=add_date_to_log_filename)
 
     return Sequencer(name, testcase_pattern=args.test_pattern)
+
+
+def _format_error(error, message):
+    filename, line, _, _ = traceback.extract_stack()[-3]
+
+    if message:
+        return f"{filename}:{line}: {error}: {message}"
+    else:
+        return f"{filename}:{line}: {error}"
