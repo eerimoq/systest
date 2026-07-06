@@ -18,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.16.0'
+__version__ = '5.17.0'
 
 
 _RUN_HEADER_FMT ='''
@@ -944,7 +944,7 @@ class Sequencer(object):
             print((f"Unable to create image from dot file '{filename_dot}'. Program "
                    f"'dot' is not installed."))
 
-    def report(self):
+    def report(self, json=True, dot=True):
         """Print a summary and create a dot graph image.
 
         """
@@ -953,11 +953,14 @@ class Sequencer(object):
 
         basename = _make_filename(self.name)
 
-        self._report_json(basename)
-        self._report_dot(basename)
+        if json:
+            self._report_json(basename)
 
-    def report_and_exit(self):
-        self.report()
+        if dot:
+            self._report_dot(basename)
+
+    def report_and_exit(self, json=True, dot=True):
+        self.report(json, dot)
 
         if self.run_failed:
             exit_code = 1
