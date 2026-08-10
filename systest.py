@@ -18,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.17.0'
+__version__ = '5.18.0'
 
 
 _RUN_HEADER_FMT ='''
@@ -520,13 +520,15 @@ class Sequencer(object):
                  name,
                  testcase_pattern=None,
                  dry_run=False,
-                 force_serial_execution=False):
+                 force_serial_execution=False,
+                 remove_filtered_testcases=False):
         self.name = name
         self.dry_run = dry_run
         self.tests = None
         self.execution_time = 0.0
         self.testcase_pattern = testcase_pattern
         self.force_serial_execution = force_serial_execution
+        self.remove_filtered_testcases = remove_filtered_testcases
         self.continue_on_failure = True
         self.run_failed = False
 
@@ -537,6 +539,30 @@ class Sequencer(object):
             enabled = bool(re.search(self.testcase_pattern, test.name))
 
         return enabled
+
+    def filter_testcases(self, tests):
+        def group(tests):
+            filtered = [recursivly(test) for test in tests]
+
+            return type(tests)([test for test in filtered if test is not None])
+
+        def recursivly(tests):
+            if isinstance(tests, TestCase):
+                if self.is_testcase_enabled(tests):
+                    return tests
+                else:
+                    return None
+            elif isinstance(tests, (list, tuple)):
+                filtered = group(tests)
+
+                if filtered:
+                    return filtered
+                else:
+                    return None
+            else:
+                raise ValueError(f'bad type {type(tests)}')
+
+        return group(tests)
 
     def run(self, *tests, **kwargs):
         """Run given testcase(s).
@@ -576,13 +602,18 @@ class Sequencer(object):
                                              user=getpass.getuser()))
             self.tests = []
 
+        tests = list(tests)
+
+        if self.remove_filtered_testcases:
+            tests = self.filter_testcases(tests)
+
         self.continue_on_failure = kwargs.get('continue_on_failure', True)
         self.run_failed = False
-        self.tests += list(tests)
+        self.tests += tests
 
         start_time = time.time()
 
-        thread = _TestThread(list(tests), self)
+        thread = _TestThread(tests, self)
         thread.start()
         thread.join()
 
@@ -1193,6 +1224,10 @@ def setup(name,
     parser.add_argument('-c', '--no-continue-on-failure',
                         action='store_true',
                         help='Do not continue on test failure.')
+    parser.add_argument('-r', '--remove-filtered-testcases',
+                        action='store_true',
+                        help=('Remove test cases not matching given test pattern from '
+                              'the test sequence instead of marking them as skipped.'))
     parser.add_argument(
         'test_pattern',
         metavar='test-pattern',
@@ -1209,7 +1244,9 @@ def setup(name,
                       file_log_level=file_log_level,
                       add_date=add_date_to_log_filename)
 
-    return Sequencer(name, testcase_pattern=args.test_pattern)
+    return Sequencer(name,
+                     testcase_pattern=args.test_pattern,
+                     remove_filtered_testcases=args.remove_filtered_testcases)
 
 
 def _format_error(error, message):

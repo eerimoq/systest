@@ -290,6 +290,39 @@ class SysTestTest(unittest.TestCase):
         self.assertEqual(NotExecutedTest.count, 0)
         self.assertEqual(FailTest.count, 0)
 
+    def test_testcase_pattern_remove_filtered_testcases(self):
+        """Remove all testcases not matching the test execution pattern from
+        the test sequence before executing it.
+
+        """
+
+        sequencer = Sequencer("pattern_remove_filtered_testcases",
+                              testcase_pattern="^test_b$",
+                              remove_filtered_testcases=True)
+
+        result = sequencer.run(
+            FailTest("1"),
+            NamedTest("a"),
+            (
+                FailTest("2"),
+                NamedTest("b")
+            ),
+            NamedTest("c"),
+            [
+                NamedTest("d")
+            ]
+        )
+
+        sequencer.report()
+
+        self.assertEqual(len(sequencer.tests), 1)
+        self.assertIsInstance(sequencer.tests[0], tuple)
+        self.assertEqual([test.name for test in sequencer.tests[0]], ["test_b"])
+        self.assert_result(result, Result(1, 0, 0))
+        self.assertEqual(NamedTest.count, 1)
+        self.assertEqual(NotExecutedTest.count, 0)
+        self.assertEqual(FailTest.count, 0)
+
     def test_force_serial_execution(self):
         """Force serial test case execution.
 
