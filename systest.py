@@ -531,7 +531,6 @@ class Sequencer(object):
         self.run_failed = False
 
     def is_testcase_enabled(self, test):
-
         if self.testcase_pattern is None:
             enabled = True
         else:
