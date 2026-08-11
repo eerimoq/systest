@@ -18,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.18.0'
+__version__ = '5.18.1'
 
 
 _RUN_HEADER_FMT ='''
@@ -1025,7 +1025,7 @@ def _flatten(l):
 class _TestThread(threading.Thread):
 
     def __init__(self, test, sequencer):
-        super(_TestThread, self).__init__()
+        super(_TestThread, self).__init__(daemon=True)
         self.test = test
         self.sequencer = sequencer
         self.result = None
