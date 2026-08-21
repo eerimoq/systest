@@ -18,7 +18,7 @@ from humanfriendly import format_timespan
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.18.1'
+__version__ = '5.19.0'
 
 
 _RUN_HEADER_FMT ='''
@@ -521,7 +521,8 @@ class Sequencer(object):
                  testcase_pattern=None,
                  dry_run=False,
                  force_serial_execution=False,
-                 remove_filtered_testcases=False):
+                 remove_filtered_testcases=False,
+                 compact_output=False):
         self.name = name
         self.dry_run = dry_run
         self.tests = None
@@ -529,6 +530,7 @@ class Sequencer(object):
         self.testcase_pattern = testcase_pattern
         self.force_serial_execution = force_serial_execution
         self.remove_filtered_testcases = remove_filtered_testcases
+        self.compact_output = compact_output
         self.continue_on_failure = True
         self.run_failed = False
 
@@ -1076,8 +1078,9 @@ class _TestThread(threading.Thread):
         description_lines = ['    ' + line for line in docstring.splitlines()]
         description = '\n'.join(description_lines)
 
-        log_lines(_TEST_HEADER_FMT.format(name=test.name,
-                                          description=description))
+        if not self.sequencer.compact_output:
+            log_lines(_TEST_HEADER_FMT.format(name=test.name,
+                                              description=description))
 
         test.sequencer = self.sequencer
         result = TestCase.FAILED
@@ -1122,9 +1125,14 @@ class _TestThread(threading.Thread):
             if execution_time is None:
                 execution_time = (finish_time - start_time)
 
-            log_lines(_TEST_FOOTER_FMT.format(name=test.name,
-                                              result=result,
-                                              duration=format_timespan(execution_time)))
+            footer = _TEST_FOOTER_FMT.format(name=test.name,
+                                             result=result,
+                                             duration=format_timespan(execution_time))
+
+            if self.sequencer.compact_output:
+                footer = footer.strip()
+
+            log_lines(footer)
 
             test.result = result
             test.message = message
@@ -1228,6 +1236,9 @@ def setup(name,
                         action='store_true',
                         help=('Remove test cases not matching given test pattern from '
                               'the test sequence instead of marking them as skipped.'))
+    parser.add_argument('--compact-output',
+                        action='store_true',
+                        help='Compact output.')
     parser.add_argument(
         'test_pattern',
         metavar='test-pattern',
@@ -1246,7 +1257,8 @@ def setup(name,
 
     return Sequencer(name,
                      testcase_pattern=args.test_pattern,
-                     remove_filtered_testcases=args.remove_filtered_testcases)
+                     remove_filtered_testcases=args.remove_filtered_testcases,
+                     compact_output=args.compact_output)
 
 
 def _format_error(error, message):
