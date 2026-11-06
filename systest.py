@@ -21,7 +21,7 @@ from collections.abc import Callable
 
 
 __author__ = 'Erik Moqvist'
-__version__ = '5.20.0'
+__version__ = '5.21.0'
 
 
 _RUN_HEADER_FMT ='''
@@ -1360,7 +1360,8 @@ def wait_until(
     check: Callable[[], bool],
     description: str,
     timeout: float = 60,
-    ignore_errors: bool = False):
+    ignore_errors: bool = False,
+    interval: float = 0.5):
     end_time = time.monotonic() + timeout
     while time.monotonic() < end_time:
         try:
@@ -1369,5 +1370,5 @@ def wait_until(
         except Exception:
             if not ignore_errors:
                 raise
-        time.sleep(0.5)
+        time.sleep(interval)
     raise Exception(f"Timeout waiting for {description}")
